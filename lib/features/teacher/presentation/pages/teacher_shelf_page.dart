@@ -1,0 +1,243 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maktaba_ihsan/core/providers/transaction_providers.dart';
+import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
+import 'package:maktaba_ihsan/core/models/transaction_model.dart';
+import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
+import 'package:maktaba_ihsan/core/theme/neu_card.dart';
+import 'package:intl/intl.dart';
+
+class TeacherShelfPage extends ConsumerWidget {
+  const TeacherShelfPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translationProvider);
+    final authState = ref.watch(authProvider);
+    final userId = authState.userId;
+
+    if (userId == null) {
+      return const Center(child: Text('User ID not found.'));
+    }
+
+    final txAsync = ref.watch(userTransactionsProvider(userId));
+
+    return Scaffold(
+      body: txAsync.when(
+        data: (transactions) {
+          final pendingRequests = transactions
+              .where((tx) => tx.status == TransactionStatus.requested)
+              .toList();
+          final activeBooks = transactions
+              .where((tx) =>
+                  tx.status == TransactionStatus.active ||
+                  tx.status == TransactionStatus.overdue)
+              .toList();
+          final readBooks = transactions
+              .where((tx) => tx.status == TransactionStatus.returned)
+              .toList();
+
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(16.0),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    if (pendingRequests.isNotEmpty) ...[
+                      _buildSectionTitle(
+                          '${t.pendingRequests} (${pendingRequests.length})',
+                          Icons.hourglass_empty),
+                      ...pendingRequests
+                          .map((tx) => _buildTxCard(context, tx, t)),
+                      const SizedBox(height: 24),
+                    ],
+                    if (activeBooks.isNotEmpty) ...[
+                      _buildSectionTitle(
+                          '${t.currentlyWithMe} (${activeBooks.length})',
+                          Icons.menu_book),
+                      ...activeBooks.map((tx) => _buildTxCard(context, tx, t)),
+                      const SizedBox(height: 24),
+                    ],
+                    _buildSectionTitle(
+                        '${t.previouslyRead} (${readBooks.length})',
+                        Icons.done_all),
+                    if (readBooks.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(t.noBooks),
+                      )
+                    else
+                      ...readBooks.map((tx) => _buildTxCard(context, tx, t)),
+                  ]),
+                ),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, st) => Center(child: Text('${t.error}: $e')),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 22, color: Colors.blueGrey),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTxCard(
+      BuildContext context, LibraryTransaction tx, AppTranslations t) {
+    final dateFormat = DateFormat('dd MMM yyyy');
+    final colorScheme = Theme.of(context).colorScheme;
+
+    Color statusColor;
+    String statusText;
+    if (tx.status == TransactionStatus.requested) {
+      statusColor = Colors.orange;
+      statusText = t.pending;
+    } else if (tx.status == TransactionStatus.active) {
+      statusColor = Colors.blue;
+      statusText = t.statusOngoing;
+    } else if (tx.status == TransactionStatus.overdue) {
+      statusColor = Colors.red;
+      statusText = t.statusOverdue;
+    } else {
+      statusColor = Colors.green;
+      statusText = t.statusReturned;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: NeuCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.menu_book_rounded,
+                      color: statusColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tx.bookName ?? t.unknownBook,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(Icons.numbers_rounded,
+                              size: 14, color: colorScheme.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${t.accessionNo}: ${tx.accessionNo}',
+                            style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            if (tx.status != TransactionStatus.requested) ...[
+              const SizedBox(height: 16),
+              Divider(
+                  height: 1,
+                  color: colorScheme.outlineVariant.withOpacity(0.5)),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded,
+                      size: 14, color: colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  Text(
+                    t.issueDate,
+                    style: TextStyle(
+                        color: colorScheme.onSurfaceVariant, fontSize: 13),
+                  ),
+                  Text(
+                    dateFormat.format(tx.issueDate),
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (tx.status == TransactionStatus.returned &&
+                  tx.actualReturn != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 14, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(
+                      t.returnDate,
+                      style: TextStyle(
+                          color: colorScheme.onSurfaceVariant, fontSize: 13),
+                    ),
+                    Text(
+                      dateFormat.format(tx.actualReturn!),
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+}
