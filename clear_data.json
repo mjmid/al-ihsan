@@ -1,0 +1,12 @@
+{
+  "action": "push",
+  "changes": [
+    {"table": "Users", "operation": "DELETE", "data": {"user_id": "12459"}},
+    {"table": "Users", "operation": "DELETE", "data": {"user_id": "803334"}},
+    {"table": "Users", "operation": "DELETE", "data": {"user_id": "12451"}},
+    {"table": "Transactions", "operation": "DELETE", "data": {"trx_id": "de78170a-764a-4020-8e9e-edc1a8e91235"}},
+    {"table": "Transactions", "operation": "DELETE", "data": {"trx_id": "a41a1680-98e6-459b-bc49-79a6e74a3938"}},
+    {"table": "Transactions", "operation": "DELETE", "data": {"trx_id": "d60193eb-f517-4033-a1d1-d838967bda0a"}},
+    {"table": "Transactions", "operation": "DELETE", "data": {"trx_id": "7ef294d0-f9c7-40da-a80e-a9e96bf90bd6"}}
+  ]
+}

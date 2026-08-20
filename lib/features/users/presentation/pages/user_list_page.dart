@@ -16,6 +16,7 @@ class UserListPage extends ConsumerWidget {
     final t = ref.watch(translationProvider);
     final usersAsync = ref.watch(usersListProvider);
     final selectedType = ref.watch(userTypeFilterProvider);
+    final showInactive = ref.watch(showInactiveUsersProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -26,7 +27,7 @@ class UserListPage extends ConsumerWidget {
             MaterialPageRoute(
               builder: (context) => const AddEditUserPage(),
             ),
-          );
+          ).then((_) => ref.invalidate(usersListProvider));
         },
         child: const Icon(Icons.person_add),
       ),
@@ -37,7 +38,7 @@ class UserListPage extends ConsumerWidget {
             pinned: true,
             floating: true,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(120),
+              preferredSize: const Size.fromHeight(130),
               child: Column(
                 children: [
                   Padding(
@@ -61,22 +62,61 @@ class UserListPage extends ConsumerWidget {
                       },
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: FilterSegmentedControl<UserType?>(
-                      items: const [
-                        null,
-                        ...UserType.values,
+                    child: Row(
+                      children: [
+                        // Active type filters
+                        if (!showInactive)
+                          Expanded(
+                            child: FilterSegmentedControl<UserType?>(
+                              items: const [null, ...UserType.values],
+                              selected: selectedType,
+                              labelBuilder: (type) {
+                                if (type == null) return t.all;
+                                return _translateUserType(type, t);
+                              },
+                              onChanged: (type) {
+                                ref.read(userTypeFilterProvider.notifier).state = type;
+                              },
+                            ),
+                          ),
+                        if (!showInactive) const SizedBox(width: 8),
+                        // নিষ্ক্রিয় tab
+                        GestureDetector(
+                          onTap: () {
+                            ref.read(showInactiveUsersProvider.notifier).state =
+                                !showInactive;
+                            // Reset type filter when switching
+                            ref.read(userTypeFilterProvider.notifier).state = null;
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: showInactive
+                                  ? Colors.red.shade700
+                                  : Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.red.withOpacity(0.4),
+                              ),
+                            ),
+                            child: Text(
+                              'নিষ্ক্রিয়',
+                              style: TextStyle(
+                                color: showInactive
+                                    ? Colors.white
+                                    : Colors.red.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
-                      selected: selectedType,
-                      labelBuilder: (type) {
-                        if (type == null) return t.all;
-                        return _translateUserType(type, t);
-                      },
-                      onChanged: (type) {
-                        ref.read(userTypeFilterProvider.notifier).state = type;
-                      },
                     ),
                   ),
                   const SizedBox(height: 8),

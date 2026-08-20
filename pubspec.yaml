@@ -63,6 +63,8 @@ dependencies:
   sqflite_common_ffi_web: 0.4.1
   pdf: any
   printing: any
+  url_launcher: ^6.3.1
+  flutter_quill: ^10.8.2
 
 dev_dependencies:
   flutter_test:
@@ -88,7 +90,7 @@ flutter:
         - asset: assets/fonts/EkusheyBelycon.ttf
     - family: UrduNastaleeq
       fonts:
-        - asset: assets/fonts/Jameel Noori Nastaleeq Regular.ttf
+        - asset: assets/fonts/JameelNooriNastaleeqKasheeda.ttf
     - family: ArabicUthmanic
       fonts:
         - asset: assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf

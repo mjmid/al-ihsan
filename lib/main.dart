@@ -48,8 +48,9 @@ Future<void> main() async {
 
   // ── Step 3: Initialize sqflite DB (warm up the singleton) ─────────────────
   // Calling getInstance() triggers table creation on first launch.
-  DatabaseHelper.instance;
-  debugPrint('✅ SQLite database initialized: $kDbName');
+  final dbHelper = DatabaseHelper.instance;
+  await dbHelper.repairBookStatuses();
+  debugPrint('✅ SQLite database initialized and repaired: $kDbName');
 
   // ── Step 4: Run App ───────────────────────────────────────────────────────
   // ProviderScope is the root of Riverpod's dependency injection tree.

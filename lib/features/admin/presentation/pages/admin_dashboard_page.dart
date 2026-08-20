@@ -170,28 +170,6 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                       tooltip: 'গুগল শীট থেকে সিঙ্ক করুন',
                       onPressed: _runSync,
                     ),
-              if (_selectedIndex == 2)
-                IconButton(
-                  icon: const Icon(Icons.print),
-                  tooltip: 'প্রিন্ট করুন',
-                  onPressed: () async {
-                    try {
-                      if (_selectedIndex == 2) {
-                        final txs =
-                            await ref.read(transactionsListProvider.future);
-                        await PrintService.printTransactions(txs, t);
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text('প্রিন্ট করতে সমস্যা হয়েছে: $e')),
-                        );
-                      }
-                    }
-                  },
-                ),
             ],
           ),
         ),

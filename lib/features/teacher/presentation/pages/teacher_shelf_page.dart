@@ -7,11 +7,18 @@ import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'package:intl/intl.dart';
 
-class TeacherShelfPage extends ConsumerWidget {
+class TeacherShelfPage extends ConsumerStatefulWidget {
   const TeacherShelfPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TeacherShelfPage> createState() => _TeacherShelfPageState();
+}
+
+class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
+  int _selectedTab = 0; // 0=চলতি, 1=রিকোয়েস্ট, 2=পড়া
+
+  @override
+  Widget build(BuildContext context) {
     final t = ref.watch(translationProvider);
     final authState = ref.watch(authProvider);
     final userId = authState.userId;
@@ -37,39 +44,50 @@ class TeacherShelfPage extends ConsumerWidget {
               .where((tx) => tx.status == TransactionStatus.returned)
               .toList();
 
-          return CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(16.0),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    if (pendingRequests.isNotEmpty) ...[
-                      _buildSectionTitle(
-                          '${t.pendingRequests} (${pendingRequests.length})',
-                          Icons.hourglass_empty),
-                      ...pendingRequests
-                          .map((tx) => _buildTxCard(context, tx, t)),
-                      const SizedBox(height: 24),
-                    ],
-                    if (activeBooks.isNotEmpty) ...[
-                      _buildSectionTitle(
-                          '${t.currentlyWithMe} (${activeBooks.length})',
-                          Icons.menu_book),
-                      ...activeBooks.map((tx) => _buildTxCard(context, tx, t)),
-                      const SizedBox(height: 24),
-                    ],
-                    _buildSectionTitle(
-                        '${t.previouslyRead} (${readBooks.length})',
-                        Icons.done_all),
-                    if (readBooks.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(t.noBooks),
-                      )
-                    else
-                      ...readBooks.map((tx) => _buildTxCard(context, tx, t)),
-                  ]),
+          List<LibraryTransaction> currentList;
+          if (_selectedTab == 0) currentList = activeBooks;
+          else if (_selectedTab == 1) currentList = pendingRequests;
+          else currentList = readBooks;
+
+          return Column(
+            children: [
+              // Horizontal filter tabs
+              Container(
+                color: Theme.of(context).colorScheme.surface,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    _buildTab(context, 0, t.currentlyWithMe, Icons.menu_book, activeBooks.length),
+                    const SizedBox(width: 8),
+                    _buildTab(context, 1, t.pendingRequests, Icons.hourglass_empty, pendingRequests.length),
+                    const SizedBox(width: 8),
+                    _buildTab(context, 2, t.previouslyRead, Icons.done_all, readBooks.length),
+                  ],
                 ),
+              ),
+              const Divider(height: 1),
+              // Content
+              Expanded(
+                child: currentList.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.inbox_outlined, size: 64,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)),
+                            const SizedBox(height: 16),
+                            Text(t.noBooks,
+                                style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: currentList.length,
+                        itemBuilder: (context, index) =>
+                            _buildTxCard(context, currentList[index], t),
+                      ),
               ),
             ],
           );
@@ -80,18 +98,59 @@ class TeacherShelfPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: Colors.blueGrey),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  Widget _buildTab(BuildContext context, int index, String label, IconData icon, int count) {
+    final isSelected = _selectedTab == index;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? colorScheme.primary : Colors.transparent,
+            ),
           ),
-        ],
+          child: Column(
+            children: [
+              Icon(icon, size: 18,
+                  color: isSelected ? Colors.white : colorScheme.onSurfaceVariant),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (count > 0) ...[
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white.withOpacity(0.3) : colorScheme.onSurfaceVariant.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

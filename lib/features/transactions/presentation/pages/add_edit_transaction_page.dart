@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../../core/widgets/madrasa_app_bar_title.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/transaction_model.dart';
+import '../../../../core/models/user_model.dart';
 import '../../../../core/l10n/app_translations.dart';
 import '../../../../core/providers/providers.dart';
 import '../../../../core/providers/book_providers.dart';
 import '../../../../core/providers/transaction_providers.dart';
 import '../../../../core/widgets/dynamic_font_text.dart';
+import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
+import 'package:maktaba_ihsan/core/providers/settings_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/models/book_model.dart';
 
 class AddEditTransactionPage extends ConsumerStatefulWidget {
   final LibraryTransaction? transaction;
@@ -35,6 +40,8 @@ class _AddEditTransactionPageState
   DateTime _expectedReturn = DateTime.now()
       .add(const Duration(days: 365)); // Default to 1 year since UI is hidden
   DateTime? _actualReturn;
+
+  bool _sendWhatsapp = true;
 
   String _currentBookId = '';
 
@@ -110,6 +117,7 @@ class _AddEditTransactionPageState
       final isEdit = widget.transaction != null;
       final t = ref.watch(translationProvider);
       final repository = ref.read(transactionRepositoryProvider);
+      final settings = ref.read(appSettingsProvider);
 
       try {
         if (!isEdit) {
@@ -122,10 +130,6 @@ class _AddEditTransactionPageState
           if (book == null) {
             _showError('কিতাব পাওয়া যায়নি। অ্যাকসেশন নম্বর চেক করুন।');
             return;
-          }
-          if (book.status != null && book.status!.name != 'available') {
-            // Note: BookStatus is an enum, we just check if it's available conceptually.
-            // If it's already lent, show error.
           }
 
           final user =
@@ -144,6 +148,23 @@ class _AddEditTransactionPageState
           if (result == null) {
             _showError('কিতাবটি পাওয়া যায়নি বা বর্তমানে ধার দেওয়া সম্ভব নয়।');
             return;
+          }
+
+          // Whatsapp message logic for non-admins (teachers)
+          final authState = ref.read(authProvider);
+          final isAdmin = authState.userType == UserType.admin;
+          if (!isAdmin && _sendWhatsapp) {
+            final adminPhone = settings.adminWhatsAppNumber;
+            if (adminPhone != null && adminPhone.isNotEmpty) {
+              final String message = "আসসালামু আলাইকুম।\nআমি '${book.bookName}' কিতাবটির জন্য রিকোয়েস্ট পাঠিয়েছি।\nআমার আইডি: ${user.userId}\nনাম: ${user.name}";
+              final url = Uri.parse("whatsapp://send?phone=$adminPhone&text=${Uri.encodeComponent(message)}");
+              // Using try-catch around url_launcher so it doesn't break if whatsapp not installed
+              try {
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
+              } catch (_) {}
+            }
           }
         } else {
           // Edit existing transaction
@@ -252,7 +273,7 @@ class _AddEditTransactionPageState
               validator: (value) =>
                   value == null || value.isEmpty ? t.required : null,
             ),
-            if (_currentBookId.isNotEmpty) ...[
+            if (_currentBookId.isNotEmpty && !isEdit) ...[
               const SizedBox(height: 8),
               Consumer(
                 builder: (context, ref, child) {
@@ -260,17 +281,101 @@ class _AddEditTransactionPageState
                       ref.watch(bookByAccessionNoProvider(_currentBookId));
                   return bookAsync.when(
                     data: (book) {
-                      if (book == null)
-                        return Text(t.bookNotFound,
-                            style: TextStyle(color: Colors.red));
-                      return DynamicFontText(
-                          'কিতাবের নাম: ${book.bookName}\nলেখক: ${book.author}',
-                          style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold));
+                      if (book == null) {
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                              const SizedBox(width: 8),
+                              Text(t.bookNotFound,
+                                  style: const TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        );
+                      }
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DynamicFontText(
+                              book.bookName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.green,
+                              ),
+                            ),
+                            if (book.volumeNo != null && book.volumeNo!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.format_list_numbered, size: 14, color: Colors.grey.shade600),
+                                  const SizedBox(width: 6),
+                                  Text('খণ্ড: ${book.volumeNo!.toEnglishNumerals}',
+                                      style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontSize: 13)),
+                                ],
+                              ),
+                            ],
+                            if (book.author != null && book.author!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.person_outline, size: 14, color: Colors.grey.shade600),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: DynamicFontText(
+                                      book.author!,
+                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (book.publisher != null && book.publisher!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.business_outlined, size: 14, color: Colors.grey.shade600),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: DynamicFontText(
+                                      book.publisher!,
+                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
                     },
-                    loading: () => Text(t.searching),
-                    error: (_, __) => const Text(''),
+                    loading: () => Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 16, height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
+                          const SizedBox(width: 10),
+                          Text(t.searching),
+                        ],
+                      ),
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
                   );
                 },
               ),
@@ -360,7 +465,28 @@ class _AddEditTransactionPageState
                 ),
               ],
             ] else ...[
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              Consumer(
+                builder: (context, ref, child) {
+                  final authState = ref.watch(authProvider);
+                  final isAdmin = authState.userType == UserType.admin;
+                  if (!isAdmin) {
+                    return Column(
+                      children: [
+                        CheckboxListTile(
+                          title: const Text('অ্যাডমিনকে হোয়াটসঅ্যাপে মেসেজ পাঠান'),
+                          value: _sendWhatsapp,
+                          onChanged: (val) => setState(() => _sendWhatsapp = val ?? true),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }
+              ),
               FilledButton(
                 onPressed: _saveTransaction,
                 style: FilledButton.styleFrom(

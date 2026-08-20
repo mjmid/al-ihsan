@@ -292,6 +292,31 @@ class DatabaseHelper {
     return db.rawQuery(sql, args);
   }
 
+  /// Repairs data inconsistencies between Books and Transactions.
+  /// If a transaction is Active, the corresponding book MUST be Lent.
+  /// If no Active transaction exists, the book MUST NOT be Lent.
+  Future<void> repairBookStatuses() async {
+    final db = await database;
+    
+    // Fix books that should be Lent
+    await db.rawUpdate('''
+      UPDATE $kBooksTable 
+      SET status = 'Lent' 
+      WHERE accession_no IN (
+        SELECT accession_no FROM $kTransactionsTable WHERE status = 'Active'
+      ) AND status != 'Lent'
+    ''');
+
+    // Fix books that should be Available (were stuck as Lent)
+    await db.rawUpdate('''
+      UPDATE $kBooksTable 
+      SET status = 'Available' 
+      WHERE status = 'Lent' AND accession_no NOT IN (
+        SELECT accession_no FROM $kTransactionsTable WHERE status = 'Active'
+      )
+    ''');
+  }
+
   /// Executes a raw SQL INSERT / UPDATE / DELETE statement.
   ///
   /// Returns the number of rows changed (for INSERT, the last inserted row ID).

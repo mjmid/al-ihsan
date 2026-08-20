@@ -81,6 +81,14 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          final currentDayIndex = _tabController.index + 1;
+          _showAddRoutineSheet(context, currentDayIndex);
+        },
+        icon: const Icon(Icons.add),
+        label: Text(t.addRoutine),
+      ),
       body: ValueListenableBuilder(
         valueListenable: HiveHelper.routineBox.listenable(),
         builder: (context, Box<RoutineEntry> box, _) {
@@ -94,24 +102,42 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                   .toList();
               routines.sort((a, b) => a.startTime.compareTo(b.startTime));
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: routines.length + 1,
-                itemBuilder: (context, i) {
-                  if (i == routines.length) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(
-                        child: FilledButton.icon(
-                          onPressed: () =>
-                              _showAddRoutineSheet(context, dayIndex),
-                          icon: const Icon(Icons.add),
-                          label: Text(t.addRoutine),
+              if (routines.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 80,
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'আজকের কোনো রুটিন নেই',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    );
-                  }
+                      const SizedBox(height: 8),
+                      Text(
+                        'নতুন রুটিন যোগ করতে নিচের বাটনে ক্লিক করুন',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
+              return ListView.builder(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80), // Padding for FAB
+                itemCount: routines.length,
+                itemBuilder: (context, i) {
                   final routine = routines[i];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
@@ -251,7 +277,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                       ),
                                       onPressed: () {},
                                       tooltip: routine.nightBeforeAlarm 
-                                          ? 'Alarm: ${routine.nightBeforeAlarmTime ?? "21:00"} (Previous Night)'
+                                          ? 'আগামিকাল ${routine.className} জামাতে আপনার দরস আছে, মুতালায়া করুন।\nসময়: ${routine.nightBeforeAlarmTime ?? "21:00"}'
                                           : 'Alarm is active',
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(
@@ -310,6 +336,27 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
   void initState() {
     super.initState();
     _selectedDays = {widget.initialDayIndex};
+    _subjectController.addListener(_updateUI);
+    _classController.addListener(_updateUI);
+    _startTimeController.addListener(_updateUI);
+  }
+
+  void _updateUI() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _subjectController.removeListener(_updateUI);
+    _classController.removeListener(_updateUI);
+    _startTimeController.removeListener(_updateUI);
+    _subjectController.dispose();
+    _classController.dispose();
+    _roomController.dispose();
+    _startTimeController.dispose();
+    _endTimeController.dispose();
+    _nightBeforeAlarmTimeController.dispose();
+    super.dispose();
   }
 
   void _save() {
@@ -471,7 +518,8 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
             const SizedBox(height: 16),
             SwitchListTile(
               title: Text(t.reminderNightBefore),
-              subtitle: Text(t.reminderNightBeforeDesc),
+              subtitle: Text(
+                  'আপনার আগামিকাল ${_startTimeController.text.isEmpty ? '___' : _startTimeController.text} টা থেকে ${_classController.text.isEmpty ? '___' : _classController.text} জামাতে ${_subjectController.text.isEmpty ? '___' : _subjectController.text} কিতাবের দরস আছে, মুতালায়া করুন।'),
               value: _nightBeforeAlarm,
               onChanged: (val) => setState(() => _nightBeforeAlarm = val),
               shape: RoundedRectangleBorder(

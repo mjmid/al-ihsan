@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/filter_segmented_control.dart';
+import '../../../../core/widgets/category_filter_bar.dart';
 import '../../../../core/widgets/madrasa_app_bar_title.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -48,7 +49,7 @@ class BookListPage extends ConsumerWidget {
             pinned: true,
             floating: true,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(120),
+              preferredSize: const Size.fromHeight(170),
               child: Column(
                 children: [
                   Padding(
@@ -71,29 +72,53 @@ class BookListPage extends ConsumerWidget {
                       },
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: FilterSegmentedControl<BookStatus?>(
-                      items: const [
-                        null,
-                        BookStatus.available,
-                        BookStatus.lent,
-                        BookStatus.lost,
-                        BookStatus.damaged,
-                        BookStatus.referenceOnly,
-                      ],
-                      selected: selectedStatus,
-                      labelBuilder: (status) {
-                        if (status == null) return t.all;
-                        return _getStatusLabel(status, t);
-                      },
-                      onChanged: (status) {
-                        ref.read(bookStatusFilterProvider.notifier).state =
-                            status;
-                        ref.read(bookCategoryFilterProvider.notifier).state =
-                            null;
-                      },
+                  if (isAdmin)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: FilterSegmentedControl<BookStatus?>(
+                        items: const [
+                          null,
+                          BookStatus.available,
+                          BookStatus.lent,
+                          BookStatus.lost,
+                          BookStatus.damaged,
+                          BookStatus.referenceOnly,
+                        ],
+                        selected: selectedStatus,
+                        labelBuilder: (status) {
+                          if (status == null) return t.all;
+                          return _getStatusLabel(status, t);
+                        },
+                        onChanged: (status) {
+                          ref.read(bookStatusFilterProvider.notifier).state =
+                              status;
+                          ref.read(bookCategoryFilterProvider.notifier).state =
+                              null;
+                        },
+                      ),
                     ),
+                  if (isAdmin) const SizedBox(height: 8),
+
+                  // Category Filter Bar
+                  categoriesAsync.when(
+                    data: (categories) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: CategoryFilterBar(
+                          categories: categories,
+                          selectedCategory: selectedCategory,
+                          allLabel: t.all,
+                          onChanged: (cat) {
+                            ref.read(bookCategoryFilterProvider.notifier).state = cat;
+                            if (!isAdmin) {
+                              ref.read(bookStatusFilterProvider.notifier).state = null;
+                            }
+                          },
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -218,12 +243,19 @@ class BookListTile extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        book.bookName,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              book.bookName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       if (book.author != null &&
@@ -254,7 +286,9 @@ class BookListTile extends ConsumerWidget {
                               size: 14, color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 4),
                           Text(
-                            book.accessionNo,
+                            book.volumeNo != null && book.volumeNo!.trim().isNotEmpty
+                                ? '${book.accessionNo}  -  খণ্ড ${book.volumeNo!.toEnglishNumerals}'
+                                : book.accessionNo,
                             style: TextStyle(
                                 color: colorScheme.onSurfaceVariant,
                                 fontSize: 13),

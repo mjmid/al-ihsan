@@ -121,6 +121,29 @@ class SettingsPage extends ConsumerWidget {
                   !ref.watch(actingAsTeacherProvider);
             },
           ),
+          const SizedBox(height: 12),
+          NeuCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.phone_android, color: Colors.green),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: settings.adminWhatsAppNumber,
+                    decoration: const InputDecoration(
+                      labelText: 'অ্যাডমিন হোয়াটসঅ্যাপ নাম্বার',
+                      hintText: 'উদাঃ +88017xxxxxxxx',
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (val) {
+                      ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(val);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
         ],
 

@@ -8,6 +8,7 @@ import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/models/book_model.dart';
 import '../../../../core/l10n/app_translations.dart';
+import '../../../../core/widgets/dynamic_font_text.dart';
 import '../widgets/book_status_badge.dart';
 import 'add_edit_book_page.dart';
 
@@ -103,9 +104,13 @@ class BookDetailPage extends ConsumerWidget {
                     children: [
                       _buildInfoRow(
                           Icons.menu_book, t.bookNameLabel, book.bookName),
-                      if (book.volumeNo != null && book.volumeNo!.isNotEmpty)
-                        _buildInfoRow(Icons.format_list_numbered,
-                            t.volumeNoLabel, book.volumeNo!),
+                      if (book.volumeNo != null && book.volumeNo!.trim().isNotEmpty)
+                        _buildInfoRow(
+                          Icons.format_list_numbered, 
+                          t.volumeNoLabel, 
+                          book.volumeNo!.toEnglishNumerals,
+                          alignRight: RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(book.bookName),
+                        ),
                       _buildInfoRow(Icons.person, t.author, book.author ?? ''),
                       if (book.publisher != null && book.publisher!.isNotEmpty)
                         _buildInfoRow(
@@ -320,25 +325,37 @@ class BookDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String label, String value, {bool alignRight = false}) {
+    // Detect if value contains Arabic or Urdu script characters
+    final hasRtlScript = RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(value);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: Colors.grey.shade600),
-          const SizedBox(width: 12),
+          Icon(icon, size: 22, color: Colors.grey.shade600),
+          const SizedBox(width: 14),
           SizedBox(
-            width: 80,
+            width: 90,
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 15,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: hasRtlScript ? 20 : 16,
+                height: 1.5,
+              ),
+              textAlign: (alignRight || hasRtlScript) ? TextAlign.right : TextAlign.left,
+              textDirection: hasRtlScript ? TextDirection.rtl : TextDirection.ltr,
             ),
           ),
         ],

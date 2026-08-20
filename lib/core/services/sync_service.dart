@@ -173,6 +173,9 @@ class SyncService {
         await _prefs.setString('last_synced_at', timestamp);
       }
 
+      // 5. Repair any data inconsistencies (e.g. Active transactions but book is Available)
+      await _dbHelper.repairBookStatuses();
+
       _log('syncAll() finished — synced $totalSynced rows total');
       return SyncResult.success(totalSynced);
     } catch (e, stackTrace) {

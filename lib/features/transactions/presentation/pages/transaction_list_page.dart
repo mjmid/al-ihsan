@@ -195,7 +195,7 @@ class TransactionListPage extends ConsumerWidget {
                                                 Icons.edit_calendar,
                                                 t.requestDate,
                                                 tx.issueDate)
-                                          else ...[
+                                          else ...[ 
                                             _buildDateRow(
                                                 context,
                                                 Icons.calendar_today_rounded,
@@ -211,12 +211,29 @@ class TransactionListPage extends ConsumerWidget {
                                                   Icons.check_circle_outline,
                                                   t.returnDate,
                                                   tx.actualReturn!)
-                                            else
-                                              _buildDateRow(
-                                                  context,
-                                                  Icons.event_busy_rounded,
-                                                  t.returnDate,
-                                                  tx.expectedReturn),
+                                            else if (tx.status ==
+                                                    TransactionStatus.active ||
+                                                tx.status ==
+                                                    TransactionStatus.overdue)
+                                              Row(
+                                                children: [
+                                                  Icon(Icons.hourglass_bottom,
+                                                      size: 15,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    'এখনো ফেরত দেওয়া হয়নি',
+                                                    style: TextStyle(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                           ],
                                         ],
                                       ),

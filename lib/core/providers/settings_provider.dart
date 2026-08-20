@@ -13,17 +13,19 @@ import '../../core/database/hive_helper.dart';
 class AppSettings {
   final ThemeMode themeMode;
   final Locale locale;
+  final String? adminWhatsAppNumber;
 
   const AppSettings({
     this.themeMode = ThemeMode.system,
-    this.locale =
-        const Locale('bn'), // Default: Bengali (most common for this app)
+    this.locale = const Locale('bn'), // Default: Bengali
+    this.adminWhatsAppNumber,
   });
 
-  AppSettings copyWith({ThemeMode? themeMode, Locale? locale}) {
+  AppSettings copyWith({ThemeMode? themeMode, Locale? locale, String? adminWhatsAppNumber}) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       locale: locale ?? this.locale,
+      adminWhatsAppNumber: adminWhatsAppNumber ?? this.adminWhatsAppNumber,
     );
   }
 }
@@ -44,10 +46,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   void _loadSettings() {
     final savedTheme = HiveHelper.getSetting<String>(kThemeModeKey, 'system');
     final savedLanguage = HiveHelper.getSetting<String>(kLanguageKey, 'bn');
+    final savedWhatsApp = HiveHelper.getSetting<String>('admin_whatsapp_number', '');
 
     state = AppSettings(
       themeMode: _parseThemeMode(savedTheme),
       locale: Locale(savedLanguage),
+      adminWhatsAppNumber: savedWhatsApp,
     );
   }
 
@@ -87,6 +91,16 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> setLanguage(String languageCode) async {
     state = state.copyWith(locale: Locale(languageCode));
     await HiveHelper.setSetting(kLanguageKey, languageCode);
+  }
+
+  /// Sets the admin WhatsApp number and persists it to Hive.
+  Future<void> setAdminWhatsAppNumber(String? number) async {
+    state = state.copyWith(adminWhatsAppNumber: number);
+    if (number == null || number.isEmpty) {
+      await HiveHelper.settingsBox.delete('admin_whatsapp_number');
+    } else {
+      await HiveHelper.setSetting('admin_whatsapp_number', number);
+    }
   }
 }
 

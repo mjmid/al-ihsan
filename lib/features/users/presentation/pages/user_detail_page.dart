@@ -73,8 +73,8 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
                 onPressed: transactionsAsync.isLoading
                     ? null
                     : () async {
-                        final txs = transactionsAsync.valueOrNull ?? [];
-                        if (txs.isEmpty) {
+                        final allTxs = transactionsAsync.valueOrNull ?? [];
+                        if (allTxs.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content:
@@ -82,9 +82,54 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
                           );
                           return;
                         }
+
+                        // Show dialog to ask if returned books should be included
+                        bool includeReturned = false;
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) {
+                            return StatefulBuilder(
+                              builder: (context, setState) {
+                                return AlertDialog(
+                                  title: const Text('প্রিন্ট অপশন'),
+                                  content: Row(
+                                    children: [
+                                      Checkbox(
+                                        value: includeReturned,
+                                        onChanged: (val) {
+                                          setState(() => includeReturned = val ?? false);
+                                        },
+                                      ),
+                                      const Expanded(
+                                        child: Text('পূর্বে পড়া কিতাবের তালিকা যোগ করুন'),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text('বাতিল'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('প্রিন্ট করুন'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          }
+                        );
+
+                        if (confirm != true) return;
+
+                        final txsToPrint = includeReturned 
+                            ? allTxs 
+                            : allTxs.where((tx) => tx.status != TransactionStatus.returned).toList();
+
                         try {
                           await PdfService.printTransactionHistory(
-                              _currentUser, txs, t);
+                              _currentUser, txsToPrint, t);
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(

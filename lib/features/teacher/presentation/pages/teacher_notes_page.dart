@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -88,15 +89,28 @@ class TeacherNotesPage extends ConsumerWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 6),
-                                Text(
-                                  note.content,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                      fontSize: 14),
+                                Builder(
+                                  builder: (context) {
+                                    String previewText = note.content;
+                                    try {
+                                      final json = jsonDecode(note.content);
+                                      if (json is List) {
+                                        previewText = json.map((op) => op['insert']?.toString() ?? '').join();
+                                      }
+                                    } catch (_) {
+                                      // It's plain text, keep as is
+                                    }
+                                    return Text(
+                                      previewText,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          fontSize: 14),
+                                    );
+                                  }
                                 ),
                                 const SizedBox(height: 12),
                                 Divider(
@@ -136,7 +150,14 @@ class TeacherNotesPage extends ConsumerWidget {
                                     .onSurfaceVariant),
                             onSelected: (val) {
                               if (val == 'share') {
-                                Share.share('${note.title}\n\n${note.content}');
+                                String shareText = note.content;
+                                try {
+                                  final json = jsonDecode(note.content);
+                                  if (json is List) {
+                                    shareText = json.map((op) => op['insert']?.toString() ?? '').join();
+                                  }
+                                } catch (_) {}
+                                Share.share('${note.title}\n\n$shareText');
                               } else if (val == 'delete') {
                                 note.delete();
                               }
