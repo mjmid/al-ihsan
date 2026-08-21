@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTextStyles {
   /// For large Arabic text like titles or highlighted ayah/hadith.
   static TextStyle arabicDisplay(BuildContext context) {
     return const TextStyle(
-      fontFamily: 'ArabicNaskh',
+      fontFamily: 'ArabicMyLotus',
       fontSize: 28,
       height: 1.5,
       fontWeight: FontWeight.w600,
@@ -14,7 +14,7 @@ class AppTextStyles {
 
   static TextStyle arabicBody(BuildContext context) {
     return const TextStyle(
-      fontFamily: 'ArabicNaskh',
+      fontFamily: 'ArabicMyLotus',
       fontSize: 16,
       height: 1.6,
     );

@@ -273,7 +273,7 @@ class _AddEditTransactionPageState
               validator: (value) =>
                   value == null || value.isEmpty ? t.required : null,
             ),
-            if (_currentBookId.isNotEmpty && !isEdit) ...[
+            if (_currentBookId.isNotEmpty) ...[
               const SizedBox(height: 8),
               Consumer(
                 builder: (context, ref, child) {

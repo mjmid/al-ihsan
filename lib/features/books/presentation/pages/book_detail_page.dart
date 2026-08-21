@@ -9,6 +9,8 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/models/book_model.dart';
 import '../../../../core/l10n/app_translations.dart';
 import '../../../../core/widgets/dynamic_font_text.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/providers/settings_provider.dart';
 import '../widgets/book_status_badge.dart';
 import 'add_edit_book_page.dart';
 
@@ -202,98 +204,8 @@ class BookDetailPage extends ConsumerWidget {
         ],
       ),
       bottomNavigationBar: !isAdmin
-          ? Consumer(
-              builder: (context, ref, child) {
-                final authState = ref.watch(authProvider);
-                if (authState.userId == null) return const SizedBox.shrink();
-
-                final txAsync =
-                    ref.watch(userTransactionsProvider(authState.userId!));
-
-                return txAsync.when(
-                  data: (transactions) {
-                    final hasActiveOrPending = transactions.any((tx) =>
-                        tx.accessionNo == book.accessionNo &&
-                        (tx.status == TransactionStatus.requested ||
-                            tx.status == TransactionStatus.active ||
-                            tx.status == TransactionStatus.overdue));
-
-                    final isAvailable = book.status == BookStatus.available;
-
-                    if (hasActiveOrPending || !isAvailable) {
-                      String message = '';
-                      if (hasActiveOrPending) {
-                        message =
-                            'এই কিতাবটি আপনার কাছে আছে বা রিকোয়েস্ট করা হয়েছে';
-                      } else {
-                        message = 'এই কিতাবটি বর্তমানে ধার দেওয়া যাবে না';
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: FilledButton.icon(
-                          onPressed: null, // Disabled
-                          icon: const Icon(Icons.block),
-                          label: Text(message,
-                              style: const TextStyle(fontSize: 14)),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: FilledButton.icon(
-                        onPressed: () async {
-                          final repo = ref.read(transactionRepositoryProvider);
-                          final tx = LibraryTransaction(
-                            trxId: const Uuid().v4(),
-                            accessionNo: book.accessionNo,
-                            userId: authState.userId!,
-                            issueDate: DateTime.now(),
-                            expectedReturn:
-                                DateTime.now().add(const Duration(days: 7)),
-                            status: TransactionStatus.requested,
-                            lastUpdated: DateTime.now(),
-                            bookName: book.bookName,
-                            userName: authState.userName,
-                          );
-
-                          await repo.insertTransaction(tx);
-
-                          // Invalidate to refresh the shelf page
-                          ref.invalidate(
-                              userTransactionsProvider(authState.userId!));
-
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(t.statusOngoing),
-                              backgroundColor: Colors.green,
-                            ));
-                            Navigator.pop(context);
-                          }
-                        },
-                        icon: const Icon(Icons.send),
-                        label: Text(t.requestThisBook,
-                            style: const TextStyle(fontSize: 16)),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    );
-                  },
-                  loading: () => const SizedBox.shrink(),
-                  error: (e, st) => const SizedBox.shrink(),
-                );
-              },
-            )
-          : null,
+          ? _RequestBookBottomBar(book: book)
+          : const SizedBox.shrink(),
     );
   }
 
@@ -363,3 +275,163 @@ class BookDetailPage extends ConsumerWidget {
     );
   }
 }
+
+class _RequestBookBottomBar extends ConsumerStatefulWidget {
+  final Book book;
+  const _RequestBookBottomBar({required this.book});
+
+  @override
+  ConsumerState<_RequestBookBottomBar> createState() => _RequestBookBottomBarState();
+}
+
+class _RequestBookBottomBarState extends ConsumerState<_RequestBookBottomBar> {
+  bool _sendToWhatsApp = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    if (authState.userId == null) return const SizedBox.shrink();
+
+    final txAsync = ref.watch(userTransactionsProvider(authState.userId!));
+    final t = ref.watch(translationProvider);
+
+    return txAsync.when(
+      data: (transactions) {
+        final hasActiveOrPending = transactions.any((tx) =>
+            tx.accessionNo == widget.book.accessionNo &&
+            (tx.status == TransactionStatus.requested ||
+                tx.status == TransactionStatus.active ||
+                tx.status == TransactionStatus.overdue));
+
+        final isAvailable = widget.book.status == BookStatus.available;
+
+        if (hasActiveOrPending || !isAvailable) {
+          String message = '';
+          if (hasActiveOrPending) {
+            message = 'এই কিতাবটি আপনার কাছে আছে বা রিকোয়েস্ট করা হয়েছে';
+          } else {
+            message = 'এই কিতাবটি বর্তমানে ধার দেওয়া যাবে না';
+          }
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: FilledButton.icon(
+                onPressed: null, // Disabled
+                icon: const Icon(Icons.block),
+                label: Text(message, style: const TextStyle(fontSize: 14)),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  title: const Text('অ্যাডমিনকে হোয়াটসঅ্যাপে মেসেজ দিন', style: TextStyle(fontSize: 14)),
+                  value: _sendToWhatsApp,
+                  onChanged: (val) {
+                    setState(() {
+                      _sendToWhatsApp = val ?? false;
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      final repo = ref.read(transactionRepositoryProvider);
+                      final tx = LibraryTransaction(
+                        trxId: const Uuid().v4(),
+                        accessionNo: widget.book.accessionNo,
+                        userId: authState.userId!,
+                        issueDate: DateTime.now(),
+                        expectedReturn:
+                            DateTime.now().add(const Duration(days: 7)),
+                        status: TransactionStatus.requested,
+                        lastUpdated: DateTime.now(),
+                        bookName: widget.book.bookName,
+                        userName: authState.userName,
+                      );
+
+                      await repo.insertTransaction(tx);
+
+                      // Invalidate to refresh the shelf page
+                      ref.invalidate(userTransactionsProvider(authState.userId!));
+
+                      if (_sendToWhatsApp) {
+                        final adminPhone = ref.read(appSettingsProvider).adminWhatsAppNumber;
+                          if (adminPhone != null && adminPhone.isNotEmpty) {
+                            // Format number by removing any spaces or pluses to make it suitable for URL
+                            final formattedPhone = adminPhone.replaceAll(RegExp(r'[^0-9]'), '');
+                            final message = '''আসসালামু আলাইকুম। আমি ${authState.userName ?? ''}, নিচের কিতাবটি নেয়ার জন্য রিকোয়েস্ট পাঠিয়েছি:
+
+📖 কিতাবের নাম: ${widget.book.bookName}
+📚 খণ্ড: ${widget.book.volumeNo ?? 'অজানা'}
+✍️ লেখক: ${widget.book.author ?? 'অজানা'}
+🏢 প্রকাশনী: ${widget.book.publisher ?? 'অজানা'}
+
+দয়া করে রিকোয়েস্টটি অ্যাপ্রুভ করুন। জাযাকাল্লাহ!''';
+                            final encodedMessage = Uri.encodeComponent(message);
+                          final whatsappUrl = Uri.parse("whatsapp://send?phone=" + formattedPhone + "&text=" + encodedMessage);
+                          if (await canLaunchUrl(whatsappUrl)) {
+                            await launchUrl(whatsappUrl);
+                          } else {
+                            final fallbackUrl = Uri.parse("https://wa.me/" + formattedPhone + "?text=" + encodedMessage);
+                            await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
+                          }
+                        } else {
+                           if (context.mounted) {
+                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                               content: Text('অ্যাডমিন হোয়াটসঅ্যাপ নাম্বার সেট করা নেই'),
+                               backgroundColor: Colors.red,
+                             ));
+                           }
+                        }
+                      }
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(t.statusOngoing),
+                          backgroundColor: Colors.green,
+                        ));
+                        if (!mounted) return;
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: const Icon(Icons.send),
+                    label: Text(t.requestThisBook,
+                        style: const TextStyle(fontSize: 16)),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+
+

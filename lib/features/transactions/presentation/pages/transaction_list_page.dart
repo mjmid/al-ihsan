@@ -6,6 +6,7 @@ import '../../../../core/providers/transaction_providers.dart';
 import '../../../../core/widgets/dynamic_font_text.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
+import 'package:maktaba_ihsan/core/providers/providers.dart';
 import 'add_edit_transaction_page.dart';
 
 class TransactionListPage extends ConsumerWidget {
@@ -30,7 +31,13 @@ class TransactionListPage extends ConsumerWidget {
         },
         child: const Icon(Icons.add),
       ),
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          final syncService = await ref.read(syncServiceProvider.future);
+          await syncService.syncAll();
+          ref.invalidate(transactionsListProvider);
+        },
+        child: CustomScrollView(
         slivers: [
           SliverAppBar(
             toolbarHeight: 0,
@@ -288,6 +295,7 @@ class TransactionListPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -1,4 +1,4 @@
-name: maktaba_ihsan
+﻿name: maktaba_ihsan
 description: "Maktaba Ihsan - Free Madrasa Library Management System"
 publish_to: 'none'
 version: 1.0.0+1
@@ -12,40 +12,40 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # ── State Management ──────────────────────────────────────────────────────
+  # â”€â”€ State Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   flutter_riverpod: ^2.5.1        # Reactive state management
   riverpod_annotation: ^2.3.5     # Code-gen annotations for Riverpod
 
-  # ── Local Database (Offline-First Core) ───────────────────────────────────
+  # â”€â”€ Local Database (Offline-First Core) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   sqflite: ^2.3.3+1               # Books, Users, Transactions
   sqflite_common_ffi: ^2.3.3      # Desktop (Windows/Linux) sqflite support
   path: ^1.9.0                    # File path utilities
   path_provider: ^2.1.3           # App document directory
 
-  # ── Hive (Teacher Notes, Routine, Settings) ───────────────────────────────
+  # â”€â”€ Hive (Teacher Notes, Routine, Settings) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   hive_flutter: ^1.1.0            # Hive with Flutter integration
   hive: ^2.2.3                    # Lightweight key-value NoSQL DB
 
-  # ── Networking (GAS Sync) ─────────────────────────────────────────────────
+  # â”€â”€ Networking (GAS Sync) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   dio: ^5.4.3+1                   # HTTP client with interceptors & retry
   http: ^1.2.2                    # Simple HTTP package (backup for GAS on web)
   connectivity_plus: ^6.0.3       # Detect online/offline status
 
-  # ── UI & Theming ──────────────────────────────────────────────────────────
+  # â”€â”€ UI & Theming â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   google_fonts: any            # Arabic/Bengali/Urdu typography
   flex_color_scheme: any       # Premium theme generation
   flutter_animate: ^4.5.0         # Micro-animations
   cached_network_image: ^3.3.1    # Efficient image loading & caching
   shimmer: ^3.0.0                 # Loading skeleton effect
 
-  # ── Internationalization (Multi-Language) ─────────────────────────────────
+  # â”€â”€ Internationalization (Multi-Language) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   intl: any                   # Date formatting + i18n base
 
-  # ── Icons & Assets ────────────────────────────────────────────────────────
+  # â”€â”€ Icons & Assets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   flutter_svg: ^2.0.10+1          # SVG icon support
   hugeicons: ^0.0.7               # Premium icon pack
 
-  # ── Utils & Helpers ───────────────────────────────────────────────────────
+  # â”€â”€ Utils & Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   uuid: ^4.4.0                    # UUID generation for IDs (offline-safe)
   shared_preferences: ^2.2.3      # Simple key-value (last sync timestamp)
   equatable: ^2.0.5               # Value equality for models
@@ -53,12 +53,12 @@ dependencies:
   collection: ^1.18.0             # Dart collection utilities
   crypto: ^3.0.3                  # SHA-256 PIN hashing (UserRepository)
 
-  # ── File Operations (CSV Export) ──────────────────────────────────────────
+  # â”€â”€ File Operations (CSV Export) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   csv: ^6.0.0                     # CSV generation for DB export
   share_plus: ^9.0.0              # Share/export files
   permission_handler: ^11.3.1     # Storage permission for export
 
-  # ── Voice Typing (Teacher Notepad) ────────────────────────────────────────
+  # â”€â”€ Voice Typing (Teacher Notepad) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   speech_to_text: ^6.6.2          # Voice-to-text for notes
   sqflite_common_ffi_web: 0.4.1
   pdf: any
@@ -91,6 +91,9 @@ flutter:
     - family: UrduNastaleeq
       fonts:
         - asset: assets/fonts/JameelNooriNastaleeqKasheeda.ttf
+    - family: ArabicMyLotus
+      fonts:
+        - asset: assets/fonts/mylotus Regular.ttf
     - family: ArabicUthmanic
       fonts:
         - asset: assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf

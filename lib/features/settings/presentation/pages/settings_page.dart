@@ -122,27 +122,11 @@ class SettingsPage extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 12),
-          NeuCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                const Icon(Icons.phone_android, color: Colors.green),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: settings.adminWhatsAppNumber,
-                    decoration: const InputDecoration(
-                      labelText: 'অ্যাডমিন হোয়াটসঅ্যাপ নাম্বার',
-                      hintText: 'উদাঃ +88017xxxxxxxx',
-                      border: InputBorder.none,
-                    ),
-                    onChanged: (val) {
-                      ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(val);
-                    },
-                  ),
-                ),
-              ],
-            ),
+          _AdminWhatsAppField(
+            initialValue: settings.adminWhatsAppNumber ?? '',
+            onChanged: (val) {
+              ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(val);
+            },
           ),
           const SizedBox(height: 24),
         ],
@@ -399,4 +383,57 @@ class _SegmentData {
     required this.isSelected,
     required this.onTap,
   });
+}
+
+class _AdminWhatsAppField extends StatefulWidget {
+  final String initialValue;
+  final ValueChanged<String> onChanged;
+
+  const _AdminWhatsAppField({
+    required this.initialValue,
+    required this.onChanged,
+  });
+
+  @override
+  State<_AdminWhatsAppField> createState() => _AdminWhatsAppFieldState();
+}
+
+class _AdminWhatsAppFieldState extends State<_AdminWhatsAppField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NeuCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.phone_android, color: Colors.green),
+          const SizedBox(width: 16),
+          Expanded(
+              child: TextFormField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  labelText: 'অ্যাডমিন হোয়াটসঅ্যাপ নাম্বার',
+                  hintText: 'যেমন +88017xxxxxxxx',
+                  border: InputBorder.none,
+                ),
+                onChanged: widget.onChanged,
+              ),
+          ),
+        ],
+      ),
+    );
+  }
 }

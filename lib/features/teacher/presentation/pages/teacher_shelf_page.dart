@@ -6,6 +6,7 @@ import 'package:maktaba_ihsan/core/models/transaction_model.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'package:intl/intl.dart';
+import 'package:maktaba_ihsan/core/providers/providers.dart';
 
 class TeacherShelfPage extends ConsumerStatefulWidget {
   const TeacherShelfPage({super.key});
@@ -68,26 +69,42 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
               const Divider(height: 1),
               // Content
               Expanded(
-                child: currentList.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    final syncService = await ref.read(syncServiceProvider.future);
+                    await syncService.syncAll();
+                    ref.invalidate(userTransactionsProvider(userId));
+                  },
+                  child: currentList.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           children: [
-                            Icon(Icons.inbox_outlined, size: 64,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)),
-                            const SizedBox(height: 16),
-                            Text(t.noBooks,
-                                style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.inbox_outlined, size: 64,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)),
+                                    const SizedBox(height: 16),
+                                    Text(t.noBooks,
+                                        style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          itemCount: currentList.length,
+                          itemBuilder: (context, index) =>
+                              _buildTxCard(context, currentList[index], t),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: currentList.length,
-                        itemBuilder: (context, index) =>
-                            _buildTxCard(context, currentList[index], t),
-                      ),
+                ),
               ),
             ],
           );

@@ -17,9 +17,9 @@ class MadrasaAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
     String titleFontFamily;
     if (locale == 'ar') {
-      titleFontFamily = 'ArabicUthmanic';
+      titleFontFamily = 'ArabicMyLotus';
     } else if (locale == 'ur') {
-      titleFontFamily = 'UrduNastaleeq';
+      titleFontFamily = 'ArabicMyLotus';
     } else {
       titleFontFamily = 'BengaliSolaiman';
     }

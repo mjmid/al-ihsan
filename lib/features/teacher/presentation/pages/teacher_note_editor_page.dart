@@ -22,16 +22,18 @@ class TeacherNoteEditorPage extends ConsumerStatefulWidget {
 class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
   late TextEditingController _titleController;
   late quill.QuillController _quillController;
+  final FocusNode _titleFocusNode = FocusNode();
+  final FocusNode _editorFocusNode = FocusNode();
 
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _selectedLocaleId = 'bn_BD'; // Default to Bengali
+  String _selectedLocaleId = 'bn-BD'; // Default to Bengali
 
   final Map<String, String> _locales = {
-    'bn_BD': 'বাংলা',
-    'ar_SA': 'العربية',
-    'ur_PK': 'اردو',
-    'en_US': 'English',
+    'bn-BD': 'বাংলা',
+    'ar-SA': 'العربية',
+    'ur-PK': 'اردو',
+    'en-US': 'English',
   };
 
   @override
@@ -65,6 +67,8 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
   void dispose() {
     _titleController.dispose();
     _quillController.dispose();
+    _titleFocusNode.dispose();
+    _editorFocusNode.dispose();
     super.dispose();
   }
 
@@ -84,16 +88,42 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
       );
       if (available) {
         setState(() => _isListening = true);
+        
+        // Find best matching locale from system locales
+        String? bestLocaleId = _selectedLocaleId;
+        try {
+          var systemLocales = await _speech.locales();
+          var targetLang = _selectedLocaleId.split('-')[0];
+          
+          for (var loc in systemLocales) {
+            if (loc.localeId.startsWith(targetLang)) {
+              bestLocaleId = loc.localeId;
+              break;
+            }
+          }
+        } catch (e) {
+          debugPrint("Error fetching locales: $e");
+        }
+
         _speech.listen(
           onResult: (val) => setState(() {
             if (val.finalResult) {
               final textToInsert = val.recognizedWords + ' ';
-              final index = _quillController.document.length - 1;
-              _quillController.document.insert(index, textToInsert);
-              _quillController.updateSelection(TextSelection.collapsed(offset: index + textToInsert.length), quill.ChangeSource.local);
+              if (_titleFocusNode.hasFocus) {
+                final int currentPos = _titleController.selection.base.offset;
+                final pos = currentPos >= 0 ? currentPos : _titleController.text.length;
+                final text = _titleController.text;
+                _titleController.text = text.substring(0, pos) + textToInsert + text.substring(pos);
+                _titleController.selection = TextSelection.collapsed(offset: pos + textToInsert.length);
+              } else {
+                final int pos = _quillController.selection.baseOffset;
+                final index = pos >= 0 ? pos : _quillController.document.length - 1;
+                _quillController.document.insert(index, textToInsert);
+                _quillController.updateSelection(TextSelection.collapsed(offset: index + textToInsert.length), quill.ChangeSource.local);
+              }
             }
           }),
-          localeId: _selectedLocaleId,
+          localeId: bestLocaleId,
         );
       }
     } else {
@@ -252,6 +282,7 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
                 children: [
                   const SizedBox(height: 8),
                   TextField(
+                    focusNode: _titleFocusNode,
                     controller: _titleController,
                     style: TextStyle(
                       fontSize: 28,
@@ -273,6 +304,7 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
                   const SizedBox(height: 8),
                   Expanded(
                     child: quill.QuillEditor.basic(
+                      focusNode: _editorFocusNode,
                       configurations: quill.QuillEditorConfigurations(
                         controller: _quillController,
                         sharedConfigurations: const quill.QuillSharedConfigurations(

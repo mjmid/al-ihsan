@@ -162,6 +162,15 @@ class SyncService {
       if (txsList.isNotEmpty) {
         final localTxs =
             txsList.map((r) => _mapTransactionsRow(_toMap(r))).toList();
+            
+        final remoteIds = localTxs.map((e) => "'${e['trx_id']}'").join(',');
+        if (remoteIds.isNotEmpty) {
+          final db = await _dbHelper.database;
+          // Delete transactions not on server, protecting recently created offline ones (last 1 hour)
+          final oneHourAgo = DateTime.now().subtract(const Duration(hours: 1)).toIso8601String();
+          await db.execute('DELETE FROM $kTransactionsTable WHERE trx_id NOT IN ($remoteIds) AND last_updated < ?', [oneHourAgo]);
+        }
+
         await _dbHelper.batchUpsert(kTransactionsTable, localTxs, 'trx_id');
         totalSynced += localTxs.length;
         _log('Upserted ${localTxs.length} transactions');
