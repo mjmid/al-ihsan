@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
@@ -9,7 +9,7 @@ import '../core/providers/settings_provider.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 
 /// ============================================================
-/// MaktabaApp â€” Root Widget
+/// MaktabaApp — Root Widget
 /// ============================================================
 ///
 /// Responsibilities:
@@ -24,7 +24,7 @@ class MaktabaApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch settings â€” rebuilds when theme or language changes
+    // Watch settings — rebuilds when theme or language changes
     final settings = ref.watch(appSettingsProvider);
     final locale = settings.locale.languageCode;
 
@@ -34,21 +34,21 @@ class MaktabaApp extends ConsumerWidget {
     List<String> fontFallback;
     if (locale == 'ar') {
       appFontFamily = 'ArabicMyLotus';
-      fontFallback = ['BengaliSolaiman', 'ArabicMyLotus'];
+      fontFallback = ['BengaliSolaiman', 'UrduNastaleeq'];
     } else if (locale == 'ur') {
-      appFontFamily = 'ArabicMyLotus';
+      appFontFamily = 'UrduNastaleeq';
       fontFallback = ['ArabicMyLotus', 'BengaliSolaiman'];
     } else {
       appFontFamily = 'BengaliSolaiman';
-      fontFallback = ['ArabicMyLotus', 'ArabicMyLotus'];
+      fontFallback = ['ArabicMyLotus', 'UrduNastaleeq'];
     }
 
     return MaterialApp(
-      // â”€â”€ App Identity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── App Identity ────────────────────────────────────────────────────
       title: kAppNameEn,
       debugShowCheckedModeBanner: false,
 
-      // â”€â”€ Theme Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Theme Configuration ─────────────────────────────────────────────
       theme: FlexThemeData.light(
         colors: const FlexSchemeColor(
           primary: Color(0xFF1F9E5C),
@@ -122,10 +122,10 @@ class MaktabaApp extends ConsumerWidget {
         fontFamilyFallback: fontFallback,
       ),
 
-      // Follow system theme by default â€” overrideable in settings
+      // Follow system theme by default — overrideable in settings
       themeMode: settings.themeMode,
 
-      // â”€â”€ Localization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Localization ────────────────────────────────────────────────────
       locale: settings.locale,
       supportedLocales: const [
         Locale('en'), // English
@@ -139,7 +139,7 @@ class MaktabaApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
 
-      // â”€â”€ Initial Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Initial Route ───────────────────────────────────────────────────
       home: const LoginPage(),
     );
   }

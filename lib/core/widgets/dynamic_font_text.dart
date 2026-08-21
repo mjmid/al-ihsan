@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class DynamicFontText extends StatelessWidget {
@@ -24,7 +24,7 @@ class DynamicFontText extends StatelessWidget {
     final urduRegex = RegExp(
         r'[\u067E\u0686\u0698\u06AF\u06D2\u0688\u0691\u0679\u06BA\u06C1\u06BE]');
     if (urduRegex.hasMatch(text)) {
-      return 'ArabicMyLotus';
+      return 'UrduNastaleeq';
     }
 
     // Arabic block (includes Urdu characters not matched above, but typically Arabic)
@@ -61,7 +61,7 @@ class DynamicFontText extends StatelessWidget {
       dynamicStyle = dynamicStyle.copyWith(fontFamily: fontFamily);
 
       // Increase font size significantly for Arabic and Urdu for better readability
-      if (fontFamily == 'ArabicMyLotus' && dynamicStyle.fontSize != null) {
+      if (fontFamily == 'UrduNastaleeq' && dynamicStyle.fontSize != null) {
         dynamicStyle =
             dynamicStyle.copyWith(fontSize: dynamicStyle.fontSize! * 1.5);
       } else if (fontFamily == 'ArabicMyLotus' && dynamicStyle.fontSize != null) {

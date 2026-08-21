@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maktaba_ihsan/core/providers/settings_provider.dart';
 
@@ -16,7 +16,7 @@ class MadrasaAppBarTitle extends ConsumerWidget {
     if (locale == 'ar') {
       titleFontFamily = 'ArabicMyLotus';
     } else if (locale == 'ur') {
-      titleFontFamily = 'ArabicMyLotus';
+      titleFontFamily = 'UrduNastaleeq';
     } else {
       titleFontFamily = 'BengaliSolaiman';
     }
@@ -42,7 +42,7 @@ class MadrasaAppBarTitle extends ConsumerWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'à¦œà¦¾à¦®à§‡à¦† à¦®à¦¾à¦°à¦•à¦¾à¦¯à§à¦² à¦‡à¦¹à¦¸à¦¾à¦¨ à¦¢à¦¾à¦•à¦¾',
+                    'জামেআ মারকাযুল ইহসান ঢাকা',
                     // Always use SolaimanLipi for the Bangla madrasa name
                     style: TextStyle(
                       fontFamily: 'BengaliSolaiman',

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maktaba_ihsan/core/providers/settings_provider.dart';
 
@@ -19,7 +19,7 @@ class MadrasaAppBar extends ConsumerWidget implements PreferredSizeWidget {
     if (locale == 'ar') {
       titleFontFamily = 'ArabicMyLotus';
     } else if (locale == 'ur') {
-      titleFontFamily = 'ArabicMyLotus';
+      titleFontFamily = 'UrduNastaleeq';
     } else {
       titleFontFamily = 'BengaliSolaiman';
     }
