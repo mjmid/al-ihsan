@@ -8,8 +8,8 @@ import '../../../../core/widgets/maktaba_text_field.dart';
 import '../../../../core/theme/neu_card.dart';
 import '../../../../core/theme/neu_button.dart';
 import 'package:maktaba_ihsan/core/models/user_model.dart';
-
 import 'package:maktaba_ihsan/features/dashboard/presentation/pages/root_dashboard_page.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -191,7 +191,36 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   .animate()
                                   .fadeIn(delay: 900.ms)
                                   .slideX(begin: 0.1),
-                              const SizedBox(height: 32),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ForgotPasswordPage(),
+                                      ),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'পাসওয়ার্ড ভুলে গেছেন?',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ).animate().fadeIn(delay: 950.ms),
+                              const SizedBox(height: 24),
                               NeuButton(
                                 onPressed:
                                     authState.isLoading ? null : _handleLogin,

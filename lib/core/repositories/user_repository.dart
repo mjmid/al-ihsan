@@ -99,6 +99,67 @@ class UserRepository {
     return User.fromMap(rows.first);
   }
 
+  /// Finds an active user by phone and name for password reset.
+  Future<User?> findUserForPasswordReset({
+    required String phone,
+    required String name,
+  }) async {
+    final db = await _db.database;
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+    final cleanName = name.trim().toLowerCase();
+
+    if (cleanPhone.isEmpty || cleanName.isEmpty) return null;
+
+    final allActiveUsers = await db.query(
+      kUsersTable,
+      where: "status = 'Active'",
+    );
+
+    for (final row in allActiveUsers) {
+      final user = User.fromMap(row);
+      final userPhone = (user.phone ?? '').replaceAll(RegExp(r'[^\d]'), '');
+      final userName = user.name.trim().toLowerCase();
+
+      // Check if phone matches (comparing trailing 10 digits to handle country code)
+      bool phoneMatches = false;
+      if (cleanPhone == userPhone) {
+        phoneMatches = true;
+      } else if (cleanPhone.length >= 10 && userPhone.length >= 10) {
+        final sub1 = cleanPhone.substring(cleanPhone.length - 10);
+        final sub2 = userPhone.substring(userPhone.length - 10);
+        if (sub1 == sub2) phoneMatches = true;
+      }
+
+      // Check if name matches
+      final nameMatches = userName == cleanName ||
+          userName.contains(cleanName) ||
+          cleanName.contains(userName);
+
+      if (phoneMatches && nameMatches) {
+        return user;
+      }
+    }
+
+    return null;
+  }
+
+  /// Updates the user's PIN with a new plain-text [newPin], hashing it before storage.
+  Future<void> resetPin({
+    required String userId,
+    required String newPin,
+  }) async {
+    final user = await getUserById(userId);
+    if (user == null) throw Exception('ব্যবহারকারী পাওয়া যায়নি');
+
+    final hashedPin = hashPin(newPin);
+    final updatedUser = user.copyWith(
+      pin: hashedPin,
+      lastUpdated: DateTime.now().toUtc(),
+    );
+
+    await upsertUser(updatedUser);
+  }
+
   // ---------------------------------------------------------------------------
   // Reads
   // ---------------------------------------------------------------------------
