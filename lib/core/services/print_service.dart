@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:maktaba_ihsan/core/models/book_model.dart';
 import 'package:maktaba_ihsan/core/models/transaction_model.dart';
+import 'package:maktaba_ihsan/core/models/asset_model.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 
 class PrintService {
@@ -190,5 +191,78 @@ class PrintService {
       return t.statusOverdue;
     }
     return t.statusIssued;
+  }
+
+  /// Prints the list of assets/inventory
+  static Future<void> printAssets(List<Asset> assets) async {
+    final pdf = pw.Document();
+    final font = await _loadFont();
+    final fallbackFont = await PdfGoogleFonts.notoSansBengaliRegular();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(28),
+        theme: pw.ThemeData.withFont(
+          base: font,
+          fontFallback: [fallbackFont],
+        ),
+        build: (pw.Context context) {
+          return [
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('মাকতাবাতুল ইহসান',
+                      style: pw.TextStyle(
+                          fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('মালামাল ও সরঞ্জাম অডিট তালিকা',
+                      style: const pw.TextStyle(fontSize: 18)),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 14),
+            pw.TableHelper.fromTextArray(
+              context: context,
+              headers: [
+                'আইডি',
+                'মালামালের নাম',
+                'বিভাগ',
+                'পরিমাণ',
+                'অবস্থান',
+                'বর্তমান অবস্থা',
+                'সংগ্রহ / দাতা',
+              ],
+              data: assets.map((a) {
+                return [
+                  a.assetId,
+                  a.name,
+                  a.category,
+                  '${a.quantity} ${a.unit}',
+                  a.location,
+                  a.condition.label,
+                  a.acquisitionType == AcquisitionType.waqf
+                      ? (a.donorOrSource != null
+                          ? 'ওয়াকফ (${a.donorOrSource})'
+                          : 'ওয়াকফ')
+                      : 'ক্রয়কৃত',
+                ];
+              }).toList(),
+              headerStyle:
+                  pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+              cellStyle: const pw.TextStyle(fontSize: 10),
+              headerDecoration:
+                  const pw.BoxDecoration(color: PdfColors.grey200),
+            ),
+          ];
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'maktaba_assets_report.pdf',
+    );
   }
 }

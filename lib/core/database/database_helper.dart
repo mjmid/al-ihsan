@@ -85,9 +85,10 @@ class DatabaseHelper {
       version: kDatabaseVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
-      // Enable foreign key enforcement for every connection.
+      // Enable foreign key enforcement for every connection and ensure assets table.
       onOpen: (db) async {
         await db.execute('PRAGMA foreign_keys = ON;');
+        await _createAssetsTableIfNotExists(db);
       },
     );
   }
@@ -181,7 +182,60 @@ class DatabaseHelper {
     batch.execute(
         'CREATE INDEX idx_trx_book ON $kTransactionsTable (accession_no);');
 
+    // -------------------------------------------------------------------------
+    // Assets table
+    // -------------------------------------------------------------------------
+    batch.execute('''
+      CREATE TABLE IF NOT EXISTS $kAssetsTable (
+        asset_id         TEXT PRIMARY KEY,
+        name             TEXT NOT NULL,
+        category         TEXT NOT NULL,
+        quantity         INTEGER NOT NULL DEFAULT 1,
+        unit             TEXT NOT NULL DEFAULT 'টি',
+        location         TEXT NOT NULL,
+        condition        TEXT NOT NULL DEFAULT 'good',
+        acquisition_type TEXT NOT NULL DEFAULT 'purchased',
+        donor_or_source  TEXT,
+        cost             REAL,
+        purchase_date    TEXT,
+        remarks          TEXT,
+        last_updated     TEXT NOT NULL
+      );
+    ''');
+    batch.execute(
+        'CREATE INDEX IF NOT EXISTS idx_assets_category ON $kAssetsTable (category);');
+    batch.execute(
+        'CREATE INDEX IF NOT EXISTS idx_assets_condition ON $kAssetsTable (condition);');
+    batch.execute(
+        'CREATE INDEX IF NOT EXISTS idx_assets_location ON $kAssetsTable (location);');
+
     await batch.commit(noResult: true);
+  }
+
+  Future<void> _createAssetsTableIfNotExists(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $kAssetsTable (
+        asset_id         TEXT PRIMARY KEY,
+        name             TEXT NOT NULL,
+        category         TEXT NOT NULL,
+        quantity         INTEGER NOT NULL DEFAULT 1,
+        unit             TEXT NOT NULL DEFAULT 'টি',
+        location         TEXT NOT NULL,
+        condition        TEXT NOT NULL DEFAULT 'good',
+        acquisition_type TEXT NOT NULL DEFAULT 'purchased',
+        donor_or_source  TEXT,
+        cost             REAL,
+        purchase_date    TEXT,
+        remarks          TEXT,
+        last_updated     TEXT NOT NULL
+      );
+    ''');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_assets_category ON $kAssetsTable (category);');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_assets_condition ON $kAssetsTable (condition);');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_assets_location ON $kAssetsTable (location);');
   }
 
   // ---------------------------------------------------------------------------

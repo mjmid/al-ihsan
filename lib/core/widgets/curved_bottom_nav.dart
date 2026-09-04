@@ -19,6 +19,9 @@ class CurvedBottomNav extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final itemWidth = screenWidth / items.length;
 
+    final circleSize = items.length > 5 ? 48.0 : 56.0;
+    final fontSize = items.length > 5 ? 10.5 : 12.0;
+
     return Container(
       height: 70,
       decoration: BoxDecoration(
@@ -44,8 +47,8 @@ class CurvedBottomNav extends StatelessWidget {
             width: itemWidth,
             child: Center(
               child: Container(
-                width: 56,
-                height: 56,
+                width: circleSize,
+                height: circleSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -67,6 +70,7 @@ class CurvedBottomNav extends StatelessWidget {
                 child: Icon(
                   items[selectedIndex].activeIcon ?? items[selectedIndex].icon,
                   color: Colors.white,
+                  size: items.length > 5 ? 22 : 24,
                 ),
               ),
             ),
@@ -90,14 +94,17 @@ class CurvedBottomNav extends StatelessWidget {
                         opacity: isSelected ? 0 : 1,
                         child: Icon(
                           item.icon,
+                          size: items.length > 5 ? 22 : 24,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: fontSize,
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.normal,
                           color: isSelected

@@ -63,6 +63,9 @@ const String kUsersTable = 'users';
 /// SQLite table name for issue / return transactions.
 const String kTransactionsTable = 'transactions';
 
+/// SQLite table name for library assets / equipment / inventory.
+const String kAssetsTable = 'assets';
+
 // ─── HIVE ────────────────────────────────────────────────────────────────────
 
 /// Hive box name for teacher-authored notes (Markdown / rich-text blobs).

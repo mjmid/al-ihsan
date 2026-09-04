@@ -11,6 +11,7 @@ import 'package:maktaba_ihsan/core/providers/user_providers.dart';
 import 'package:maktaba_ihsan/features/users/presentation/pages/user_list_page.dart';
 import 'package:maktaba_ihsan/features/transactions/presentation/pages/transaction_list_page.dart';
 import 'package:maktaba_ihsan/features/settings/presentation/pages/settings_page.dart';
+import 'package:maktaba_ihsan/features/assets/presentation/pages/asset_list_page.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/widgets/curved_bottom_nav.dart';
 import 'package:maktaba_ihsan/core/services/print_service.dart';
@@ -115,6 +116,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       const BookListPage(isAdmin: true),
       const UserListPage(),
       const TransactionListPage(),
+      const AssetListPage(isAdmin: true),
       const SettingsPage(),
     ];
 
@@ -124,6 +126,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       t.bookList,
       t.membersList,
       t.transactionList,
+      'মালামাল ও সরঞ্জাম',
       t.settings,
     ];
 
@@ -209,6 +212,15 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               Color(0xFFfb923c),
               Color(0xFFea580c)
             ], // Orange
+          ),
+          CurvedNavItem(
+            icon: Icons.inventory_2_outlined,
+            activeIcon: Icons.inventory_2,
+            label: 'মালামাল',
+            gradientColors: const [
+              Color(0xFF06B6D4), // Cyan
+              Color(0xFF0891B2),
+            ],
           ),
           CurvedNavItem(
             icon: Icons.settings_outlined,
