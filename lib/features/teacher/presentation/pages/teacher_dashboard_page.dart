@@ -184,7 +184,17 @@ class _TeacherDashboardPageState extends ConsumerState<TeacherDashboardPage> {
     final safeIndex =
         _selectedIndex >= pages.length ? 0 : _selectedIndex;
 
-    return Scaffold(
+    return PopScope(
+      canPop: safeIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (safeIndex != 0) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         toolbarHeight: 90,
         title: MadrasaAppBarTitle(title: titles[safeIndex]),
@@ -240,6 +250,7 @@ class _TeacherDashboardPageState extends ConsumerState<TeacherDashboardPage> {
         },
         items: navItems,
       ),
+    ),
     );
   }
 }

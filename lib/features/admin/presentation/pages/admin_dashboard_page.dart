@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/widgets/madrasa_app_bar_title.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maktaba_ihsan/features/books/presentation/pages/book_list_page.dart';
-import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
-import 'package:maktaba_ihsan/features/auth/presentation/pages/login_page.dart';
 import 'package:maktaba_ihsan/core/providers/providers.dart';
 import 'package:maktaba_ihsan/core/providers/book_providers.dart';
 import 'package:maktaba_ihsan/core/providers/user_providers.dart';
@@ -14,8 +12,6 @@ import 'package:maktaba_ihsan/features/settings/presentation/pages/settings_page
 import 'package:maktaba_ihsan/features/assets/presentation/pages/asset_list_page.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/widgets/curved_bottom_nav.dart';
-import 'package:maktaba_ihsan/core/services/print_service.dart';
-import 'package:maktaba_ihsan/core/providers/book_providers.dart';
 import 'package:maktaba_ihsan/core/providers/transaction_providers.dart';
 import 'package:maktaba_ihsan/core/models/transaction_model.dart';
 
@@ -121,23 +117,54 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     ];
 
     final t = ref.watch(translationProvider);
+    final showInactive = ref.watch(showInactiveUsersProvider);
 
     final titles = [
       t.bookList,
-      t.membersList,
+      (_selectedIndex == 1 && showInactive)
+          ? t.inactiveMembersList
+          : t.membersList,
       t.transactionList,
       'মালামাল ও সরঞ্জাম',
       t.settings,
     ];
 
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(90),
-        child: Directionality(
-          textDirection: TextDirection.ltr,
-          child: AppBar(
-            toolbarHeight: 90,
-            title: MadrasaAppBarTitle(title: titles[_selectedIndex]),
+    final canPop = _selectedIndex == 0 && !showInactive;
+
+    return PopScope(
+      canPop: canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // Priority 1: If in user list and viewing inactive members, return to active members
+        if (_selectedIndex == 1 && showInactive) {
+          ref.read(showInactiveUsersProvider.notifier).state = false;
+          return;
+        }
+        // Priority 2: If in another tab, return to Books (index 0)
+        if (_selectedIndex != 0) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+          return;
+        }
+      },
+      child: Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(90),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: AppBar(
+              toolbarHeight: 90,
+              leading: (_selectedIndex == 1 && showInactive)
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: t.backToActiveMembers,
+                      onPressed: () {
+                        ref.read(showInactiveUsersProvider.notifier).state = false;
+                      },
+                    )
+                  : null,
+              title: MadrasaAppBarTitle(title: titles[_selectedIndex]),
             actions: [
               if (pendingCount > 0)
                 Padding(
@@ -181,6 +208,9 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       bottomNavigationBar: CurvedBottomNav(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) {
+          if (_selectedIndex == 1 && index != 1 && ref.read(showInactiveUsersProvider)) {
+            ref.read(showInactiveUsersProvider.notifier).state = false;
+          }
           setState(() {
             _selectedIndex = index;
           });
@@ -233,6 +263,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           ),
         ],
       ),
+    ),
     );
   }
 }

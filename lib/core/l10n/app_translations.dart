@@ -287,6 +287,9 @@ class AppTranslations {
   String get management => _get({'bn': 'ব্যবস্থাপনা', 'en': 'Management', 'ar': 'إدارة', 'ur': 'انتظام'});
   String get members => _get({'bn': 'সদস্যগণ', 'en': 'Members', 'ar': 'الأعضاء', 'ur': 'ممبران'});
   String get membersList => _get({'bn': 'সদস্য তালিকা', 'en': 'Members List', 'ar': 'قائمة الأعضاء', 'ur': 'ممبران کی فہرست'});
+  String get inactiveMembersList => _get({'bn': 'নিষ্ক্রিয় সদস্য তালিকা', 'en': 'Inactive Members List', 'ar': 'قائمة الأعضاء غير النشطين', 'ur': 'غیر فعال ممبران کی فہرست'});
+  String get backToActiveMembers => _get({'bn': 'সক্রিয় সদস্য তালিকায় ফিরুন', 'en': 'Back to Active Members', 'ar': 'العودة إلى قائمة النشطين', 'ur': 'فعال ممبران کی فہرست میں واپس جائیں'});
+  String get noInactiveMembers => _get({'bn': 'কোনো নিষ্ক্রিয় সদস্য নেই', 'en': 'No inactive members', 'ar': 'لا يوجد أعضاء غير نشطين', 'ur': 'کوئی غیر فعال ممبر نہیں'});
   String get myShelf => _get({'bn': 'আমার শেলফ', 'en': 'My Shelf', 'ar': 'رفي', 'ur': 'میرا شیلف'});
   String get newNote => _get({'bn': 'নতুন নোট', 'en': 'New Note', 'ar': 'ملاحظة جديدة', 'ur': 'نیا نوٹ'});
   String get notesNav => _get({'bn': 'নোটস', 'en': 'Notes', 'ar': 'ملاحظات', 'ur': 'نوٹس'});

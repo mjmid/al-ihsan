@@ -19,7 +19,15 @@ class UserListPage extends ConsumerWidget {
     final showInactive = ref.watch(showInactiveUsersProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    return PopScope(
+      canPop: !showInactive,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (showInactive) {
+          ref.read(showInactiveUsersProvider.notifier).state = false;
+        }
+      },
+      child: Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -45,7 +53,7 @@ class UserListPage extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: TextField(
                       decoration: InputDecoration(
-                        hintText: 'খুঁজুন...',
+                        hintText: showInactive ? '${t.inactive} ${t.members} ${t.searchHint}' : t.searchHint,
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -67,6 +75,53 @@ class UserListPage extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(
                       children: [
+                        if (showInactive) ...[
+                          // Back to active members button
+                          Expanded(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  ref.read(showInactiveUsersProvider.notifier).state = false;
+                                },
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: colorScheme.primary.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.arrow_back,
+                                        size: 16,
+                                        color: colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          t.backToActiveMembers,
+                                          style: TextStyle(
+                                            color: colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         // Active type filters
                         if (!showInactive)
                           Expanded(
@@ -94,25 +149,36 @@ class UserListPage extends ConsumerWidget {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               color: showInactive
                                   ? Colors.red.shade700
                                   : Colors.red.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.red.withOpacity(0.4),
+                                color: showInactive
+                                    ? Colors.red.shade700
+                                    : Colors.red.withOpacity(0.4),
                               ),
                             ),
-                            child: Text(
-                              'নিষ্ক্রিয়',
-                              style: TextStyle(
-                                color: showInactive
-                                    ? Colors.white
-                                    : Colors.red.shade700,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (showInactive) ...[
+                                  const Icon(Icons.block, size: 14, color: Colors.white),
+                                  const SizedBox(width: 4),
+                                ],
+                                Text(
+                                  t.inactive,
+                                  style: TextStyle(
+                                    color: showInactive
+                                        ? Colors.white
+                                        : Colors.red.shade700,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -129,7 +195,34 @@ class UserListPage extends ConsumerWidget {
               if (users.isEmpty) {
                 return SliverFillRemaining(
                   child: Center(
-                    child: Text(t.noMembers),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          showInactive ? Icons.person_off_outlined : Icons.people_outline,
+                          size: 48,
+                          color: colorScheme.outline,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          showInactive ? t.noInactiveMembers : t.noMembers,
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 15,
+                          ),
+                        ),
+                        if (showInactive) ...[
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              ref.read(showInactiveUsersProvider.notifier).state = false;
+                            },
+                            icon: const Icon(Icons.arrow_back, size: 16),
+                            label: Text(t.backToActiveMembers),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 );
               }
@@ -213,7 +306,7 @@ class UserListPage extends ConsumerWidget {
                                                     .onSurfaceVariant),
                                             const SizedBox(width: 4),
                                             Text(
-                                              t.memberId + ': ${user.userId}',
+                                              '${t.memberId}: ${user.userId}',
                                               style: TextStyle(
                                                   color: colorScheme
                                                       .onSurfaceVariant,
@@ -293,6 +386,7 @@ class UserListPage extends ConsumerWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
