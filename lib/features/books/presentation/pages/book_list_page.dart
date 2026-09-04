@@ -37,6 +37,9 @@ class BookListPage extends ConsumerWidget {
     final selectedCategory = ref.watch(bookCategoryFilterProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
+    final categories = categoriesAsync.asData?.value ?? [];
+    final bool hasMultipleCategories = categories.length > 1;
+
     return Scaffold(
       floatingActionButton: isAdmin
           ? FloatingActionButton(
@@ -58,32 +61,55 @@ class BookListPage extends ConsumerWidget {
             pinned: true,
             floating: true,
             bottom: PreferredSize(
-              preferredSize: Size.fromHeight(showStatusFilter ? 170 : 115),
+              preferredSize: Size.fromHeight(
+                showStatusFilter
+                    ? 120
+                    : (hasMultipleCategories ? 120 : 68),
+              ),
               child: Column(
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 8.0),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: t.searchHint,
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
+                        horizontal: 16.0, vertical: 6.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: t.searchHint,
+                              prefixIcon: const Icon(Icons.search),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHighest,
+                            ),
+                            onChanged: (value) {
+                              ref.read(bookSearchQueryProvider.notifier).state =
+                                  value;
+                            },
+                          ),
                         ),
-                        filled: true,
-                        fillColor: colorScheme.surfaceContainerHighest,
-                      ),
-                      onChanged: (value) {
-                        ref.read(bookSearchQueryProvider.notifier).state =
-                            value;
-                      },
+                        if (categories.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          _buildCategoryButton(
+                            context,
+                            ref,
+                            categories: categories,
+                            selectedCategory: selectedCategory,
+                            colorScheme: colorScheme,
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   if (showStatusFilter)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 4.0),
                       child: FilterSegmentedControl<BookStatus?>(
                         items: const [
                           null,
@@ -101,35 +127,24 @@ class BookListPage extends ConsumerWidget {
                         onChanged: (status) {
                           ref.read(bookStatusFilterProvider.notifier).state =
                               status;
+                        },
+                      ),
+                    )
+                  else if (hasMultipleCategories)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 4.0),
+                      child: CategoryFilterBar(
+                        categories: categories,
+                        selectedCategory: selectedCategory,
+                        allLabel: t.all,
+                        onChanged: (cat) {
                           ref.read(bookCategoryFilterProvider.notifier).state =
-                              null;
+                              cat;
                         },
                       ),
                     ),
-                  if (showStatusFilter) const SizedBox(height: 8),
-
-                  // Category Filter Bar
-                  categoriesAsync.when(
-                    data: (categories) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: CategoryFilterBar(
-                          categories: categories,
-                          selectedCategory: selectedCategory,
-                          allLabel: t.all,
-                          onChanged: (cat) {
-                            ref.read(bookCategoryFilterProvider.notifier).state = cat;
-                            if (!showStatusFilter) {
-                              ref.read(bookStatusFilterProvider.notifier).state = null;
-                            }
-                          },
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                 ],
               ),
             ),
@@ -182,6 +197,138 @@ class BookListPage extends ConsumerWidget {
       case BookStatus.referenceOnly:
         return t.bookReferenceStatus;
     }
+  }
+
+  Widget _buildCategoryButton(
+    BuildContext context,
+    WidgetRef ref, {
+    required List<String> categories,
+    required String? selectedCategory,
+    required ColorScheme colorScheme,
+  }) {
+    if (categories.isEmpty) return const SizedBox.shrink();
+
+    final isSelected = selectedCategory != null;
+
+    return PopupMenuButton<String?>(
+      initialValue: selectedCategory,
+      tooltip: 'বিষয় / বিভাগ ফিল্টার',
+      elevation: 6,
+      offset: const Offset(0, 48),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      onSelected: (cat) {
+        ref.read(bookCategoryFilterProvider.notifier).state = cat;
+      },
+      itemBuilder: (ctx) => [
+        PopupMenuItem<String?>(
+          value: null,
+          child: Row(
+            children: [
+              Icon(
+                selectedCategory == null
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+                size: 18,
+                color: selectedCategory == null ? colorScheme.primary : null,
+              ),
+              const SizedBox(width: 8),
+              const Text('সব বিভাগ',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        ...categories.map(
+          (cat) => PopupMenuItem<String?>(
+            value: cat,
+            child: Row(
+              children: [
+                Icon(
+                  selectedCategory == cat
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  size: 18,
+                  color: selectedCategory == cat ? colorScheme.primary : null,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    cat,
+                    style: TextStyle(
+                      fontWeight: selectedCategory == cat
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.outline.withOpacity(0.12),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? Icons.check_circle : Icons.tune_rounded,
+              size: 18,
+              color: isSelected ? colorScheme.onPrimary : colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 90),
+              child: Text(
+                isSelected ? selectedCategory : 'বিভাগ',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+            const SizedBox(width: 2),
+            if (isSelected)
+              GestureDetector(
+                onTap: () {
+                  ref.read(bookCategoryFilterProvider.notifier).state = null;
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4.0),
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: colorScheme.onPrimary,
+                  ),
+                ),
+              )
+            else
+              Icon(
+                Icons.arrow_drop_down,
+                size: 18,
+                color: colorScheme.onSurfaceVariant,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
