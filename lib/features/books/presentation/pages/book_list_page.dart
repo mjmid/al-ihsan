@@ -12,16 +12,25 @@ import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import '../widgets/book_status_badge.dart';
 import 'book_detail_page.dart';
+import '../../../../core/providers/auth_provider.dart';
 import 'add_edit_book_page.dart';
 
 class BookListPage extends ConsumerWidget {
   final bool isAdmin;
+  final bool canViewInventoryStatus;
 
-  const BookListPage({super.key, this.isAdmin = false});
+  const BookListPage({
+    super.key,
+    this.isAdmin = false,
+    this.canViewInventoryStatus = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(translationProvider);
+    final authState = ref.watch(authProvider);
+    final showStatusFilter =
+        isAdmin || canViewInventoryStatus || authState.canViewInventoryStatus;
     final searchResultsAsync = ref.watch(bookSearchResultsProvider);
     final categoriesAsync = ref.watch(bookCategoriesProvider);
     final selectedStatus = ref.watch(bookStatusFilterProvider);
@@ -49,7 +58,7 @@ class BookListPage extends ConsumerWidget {
             pinned: true,
             floating: true,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(170),
+              preferredSize: Size.fromHeight(showStatusFilter ? 170 : 115),
               child: Column(
                 children: [
                   Padding(
@@ -72,7 +81,7 @@ class BookListPage extends ConsumerWidget {
                       },
                     ),
                   ),
-                  if (isAdmin)
+                  if (showStatusFilter)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: FilterSegmentedControl<BookStatus?>(
@@ -97,7 +106,7 @@ class BookListPage extends ConsumerWidget {
                         },
                       ),
                     ),
-                  if (isAdmin) const SizedBox(height: 8),
+                  if (showStatusFilter) const SizedBox(height: 8),
 
                   // Category Filter Bar
                   categoriesAsync.when(
@@ -110,7 +119,7 @@ class BookListPage extends ConsumerWidget {
                           allLabel: t.all,
                           onChanged: (cat) {
                             ref.read(bookCategoryFilterProvider.notifier).state = cat;
-                            if (!isAdmin) {
+                            if (!showStatusFilter) {
                               ref.read(bookStatusFilterProvider.notifier).state = null;
                             }
                           },

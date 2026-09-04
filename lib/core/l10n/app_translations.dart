@@ -236,6 +236,8 @@ class AppTranslations {
   String get memberTypeLabel => _get({'bn': 'সদস্যের ধরন', 'en': 'Member Type', 'ar': 'نوع العضو', 'ur': 'ممبر کی قسم'});
   String get noMembers => _get({'bn': 'কোনো সদস্য নেই', 'en': 'No Members', 'ar': 'لا يوجد أعضاء', 'ur': 'کوئی ممبر نہیں'});
   String get admin => _get({'bn': 'অ্যাডমিন', 'en': 'Admin', 'ar': 'مسؤول', 'ur': 'ایڈمن'});
+  String get principal => _get({'bn': 'প্রিন্সিপাল', 'en': 'Principal', 'ar': 'المدير', 'ur': 'پرنسپل'});
+  String get educationSecretary => _get({'bn': 'শিক্ষা সচিব', 'en': 'Education Secretary', 'ar': 'أمين التعليم', 'ur': 'ناظم تعلیمات'});
   String get teacher => _get({'bn': 'শিক্ষক', 'en': 'Teacher', 'ar': 'معلم', 'ur': 'استاد'});
   String get student => _get({'bn': 'ছাত্র', 'en': 'Student', 'ar': 'طالب', 'ur': 'طالب علم'});
   String get titlePlaceholder => _get({'bn': 'শিরোনাম লিখুন', 'en': 'Enter Title', 'ar': 'أدخل العنوان', 'ur': 'عنوان درج کریں'});

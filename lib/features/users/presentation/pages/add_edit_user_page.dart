@@ -237,6 +237,10 @@ class _AddEditUserPageState extends ConsumerState<AddEditUserPage> {
     switch (type) {
       case UserType.admin:
         return 'অ্যাডমিন';
+      case UserType.principal:
+        return 'প্রিন্সিপাল';
+      case UserType.educationSecretary:
+        return 'শিক্ষা সচিব';
       case UserType.teacher:
         return 'শিক্ষক';
       case UserType.student:

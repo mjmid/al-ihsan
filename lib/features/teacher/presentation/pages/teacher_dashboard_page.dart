@@ -31,7 +31,10 @@ class _TeacherDashboardPageState extends ConsumerState<TeacherDashboardPage> {
     final t = ref.watch(translationProvider);
 
     final pages = [
-      const BookListPage(isAdmin: false), // কিতাব খুঁজুন
+      BookListPage(
+        isAdmin: false,
+        canViewInventoryStatus: authState.canViewInventoryStatus,
+      ), // কিতাব খুঁজুন
       const TeacherShelfPage(), // আমার সেলফ
       const TeacherRoutinePage(), // রুটিন
       const TeacherNotesPage(), // নোটস

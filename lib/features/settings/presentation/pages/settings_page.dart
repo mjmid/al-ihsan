@@ -172,7 +172,27 @@ class SettingsPage extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final name = authState.userName ?? 'Unknown User';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    final role = authState.userType == UserType.admin ? 'Owner' : 'Teacher';
+    final String role;
+    switch (authState.userType) {
+      case UserType.admin:
+        role = 'Owner';
+        break;
+      case UserType.principal:
+        role = 'প্রিন্সিপাল';
+        break;
+      case UserType.educationSecretary:
+        role = 'শিক্ষা সচিব';
+        break;
+      case UserType.teacher:
+        role = 'শিক্ষক';
+        break;
+      case UserType.student:
+        role = 'ছাত্র';
+        break;
+      case null:
+        role = 'ব্যবহারকারী';
+        break;
+    }
 
     return NeuCard(
       padding: const EdgeInsets.all(16),

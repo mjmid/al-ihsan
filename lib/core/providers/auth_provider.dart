@@ -49,8 +49,22 @@ class AuthState {
       );
 
   bool get isAdmin => userType == UserType.admin;
+  bool get isPrincipal => userType == UserType.principal;
+  bool get isEducationSecretary => userType == UserType.educationSecretary;
   bool get isTeacher => userType == UserType.teacher;
   bool get isStudent => userType == UserType.student;
+
+  /// Whether user can view inventory/book status overview (lost, damaged, lent, available, reference)
+  bool get canViewInventoryStatus =>
+      userType == UserType.admin ||
+      userType == UserType.principal ||
+      userType == UserType.educationSecretary;
+
+  /// Whether user has teacher privileges (shelf, routine, notes, requesting books)
+  bool get hasTeacherPrivileges =>
+      userType == UserType.teacher ||
+      userType == UserType.principal ||
+      userType == UserType.educationSecretary;
 
   AuthState copyWith({
     String? userId,

@@ -300,6 +300,10 @@ class UserListPage extends ConsumerWidget {
     switch (type) {
       case UserType.admin:
         return Icons.admin_panel_settings;
+      case UserType.principal:
+        return Icons.workspace_premium;
+      case UserType.educationSecretary:
+        return Icons.menu_book;
       case UserType.teacher:
         return Icons.person;
       case UserType.student:
@@ -311,6 +315,10 @@ class UserListPage extends ConsumerWidget {
     switch (type) {
       case UserType.admin:
         return t.admin;
+      case UserType.principal:
+        return t.principal;
+      case UserType.educationSecretary:
+        return t.educationSecretary;
       case UserType.teacher:
         return t.teacher;
       case UserType.student:

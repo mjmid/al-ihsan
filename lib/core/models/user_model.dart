@@ -16,6 +16,12 @@ enum UserType {
   /// Full system administrator with unrestricted access.
   admin,
 
+  /// Principal / Head of Madrasa.
+  principal,
+
+  /// Education Secretary (নাজেমে তালিমাত).
+  educationSecretary,
+
   /// A teaching staff member; may access teacher-specific features.
   teacher,
 
@@ -31,6 +37,10 @@ extension UserTypeX on UserType {
     switch (this) {
       case UserType.admin:
         return 'Admin';
+      case UserType.principal:
+        return 'Principal';
+      case UserType.educationSecretary:
+        return 'EducationSecretary';
       case UserType.teacher:
         return 'Teacher';
       case UserType.student:
@@ -39,19 +49,47 @@ extension UserTypeX on UserType {
   }
 
   /// Returns a human-readable label for display in the UI.
-  String get displayLabel => toDbString();
+  String get displayLabel {
+    switch (this) {
+      case UserType.admin:
+        return 'অ্যাডমিন';
+      case UserType.principal:
+        return 'প্রিন্সিপাল';
+      case UserType.educationSecretary:
+        return 'শিক্ষা সচিব';
+      case UserType.teacher:
+        return 'শিক্ষক';
+      case UserType.student:
+        return 'ছাত্র';
+    }
+  }
 }
 
 /// Parses a raw [value] string into a [UserType].
 ///
 /// Falls back to [UserType.student] when the value is unrecognised.
 UserType userTypeFromString(String? value) {
-  switch ((value ?? '').toLowerCase().trim()) {
+  final clean =
+      (value ?? '').toLowerCase().replaceAll(RegExp(r'[\s_\-]'), '').trim();
+  switch (clean) {
     case 'admin':
+    case 'owner':
+    case 'অ্যাডমিন':
       return UserType.admin;
+    case 'principal':
+    case 'মুহতামিম':
+    case 'প্রিন্সিপাল':
+      return UserType.principal;
+    case 'educationsecretary':
+    case 'shikshashachib':
+    case 'শিক্ষা সচিব':
+    case 'নাজেমেতালিমাত':
+      return UserType.educationSecretary;
     case 'teacher':
+    case 'শিক্ষক':
       return UserType.teacher;
     case 'student':
+    case 'ছাত্র':
     default:
       return UserType.student;
   }

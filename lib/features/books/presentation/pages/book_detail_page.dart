@@ -309,6 +309,14 @@ class _RequestBookBottomBarState extends ConsumerState<_RequestBookBottomBar> {
           String message = '';
           if (hasActiveOrPending) {
             message = 'এই কিতাবটি আপনার কাছে আছে বা রিকোয়েস্ট করা হয়েছে';
+          } else if (widget.book.status == BookStatus.lost) {
+            message = 'এই কিতাবটি হারিয়ে গেছে';
+          } else if (widget.book.status == BookStatus.damaged) {
+            message = 'এই কিতাবটি নষ্ট হয়ে গেছে';
+          } else if (widget.book.status == BookStatus.lent) {
+            message = 'এই কিতাবটি বর্তমানে বিতরণকৃত (অন্য কারও কাছে আছে)';
+          } else if (widget.book.status == BookStatus.referenceOnly) {
+            message = 'এই কিতাবটি শুধুমাত্র রেফারেন্সের জন্য সংরক্ষিত';
           } else {
             message = 'এই কিতাবটি বর্তমানে ধার দেওয়া যাবে না';
           }
