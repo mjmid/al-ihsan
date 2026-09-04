@@ -25,6 +25,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../constants/app_constants.dart';
 import '../database/database_helper.dart';
+import '../models/book_model.dart';
 import '../models/user_model.dart';
 import '../services/sync_queue_service.dart';
 
@@ -82,30 +83,77 @@ class UserRepository {
     String pin,
   ) async {
     final db = await _db.database;
-    final hashedPin = hashPin(pin);
+    final cleanIdentifier = nameOrPhone.trim().toEnglishNumerals;
+    final cleanPin = pin.trim().toEnglishNumerals;
+    final hashedPin = hashPin(cleanPin);
 
+    // 1. Direct query checking user_id, phone, or name with both hashed and plain pin
     final rows = await db.query(
       kUsersTable,
       where: '''
-        (name = ? OR phone = ?)
-        AND pin   = ?
-        AND status     = 'Active'
+        (user_id = ? OR phone = ? OR name = ?)
+        AND (pin = ? OR pin = ?)
+        AND status = 'Active'
       ''',
-      whereArgs: [nameOrPhone, nameOrPhone, hashedPin],
+      whereArgs: [
+        cleanIdentifier,
+        cleanIdentifier,
+        nameOrPhone.trim(),
+        hashedPin,
+        cleanPin,
+      ],
       limit: 1,
     );
 
-    if (rows.isEmpty) return null;
-    return User.fromMap(rows.first);
+    if (rows.isNotEmpty) return User.fromMap(rows.first);
+
+    // 2. Trailing digits check for phone number or user_id (e.g. 01314803334 vs 1314803334)
+    final digitsOnly = cleanIdentifier.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length >= 6) {
+      final trailing10 = digitsOnly.length >= 10
+          ? digitsOnly.substring(digitsOnly.length - 10)
+          : digitsOnly;
+      final phoneRows = await db.rawQuery(
+        '''
+        SELECT * FROM $kUsersTable
+        WHERE (phone LIKE ? OR phone = ? OR user_id = ?)
+          AND (pin = ? OR pin = ?)
+          AND status = 'Active'
+        LIMIT 1
+        ''',
+        ['%$trailing10', trailing10, digitsOnly, hashedPin, cleanPin],
+      );
+      if (phoneRows.isNotEmpty) {
+        return User.fromMap(phoneRows.first);
+      }
+    }
+
+    // 3. Case-insensitive / trimmed name match fallback
+    final nameRows = await db.rawQuery(
+      '''
+      SELECT * FROM $kUsersTable
+      WHERE LOWER(TRIM(name)) = LOWER(?)
+        AND (pin = ? OR pin = ?)
+        AND status = 'Active'
+      LIMIT 1
+      ''',
+      [nameOrPhone.trim(), hashedPin, cleanPin],
+    );
+    if (nameRows.isNotEmpty) {
+      return User.fromMap(nameRows.first);
+    }
+
+    return null;
   }
 
-  /// Finds an active user by phone and name for password reset.
+  /// Finds an active user by phone, user_id, or name for password reset.
   Future<User?> findUserForPasswordReset({
     required String phone,
     required String name,
   }) async {
     final db = await _db.database;
-    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+    final cleanPhone =
+        phone.replaceAll(RegExp(r'[^\d]'), '').toEnglishNumerals;
     final cleanName = name.trim().toLowerCase();
 
     if (cleanPhone.isEmpty || cleanName.isEmpty) return null;
@@ -119,15 +167,16 @@ class UserRepository {
       final user = User.fromMap(row);
       final userPhone = (user.phone ?? '').replaceAll(RegExp(r'[^\d]'), '');
       final userName = user.name.trim().toLowerCase();
+      final userId = user.userId.trim().toLowerCase();
 
-      // Check if phone matches (comparing trailing 10 digits to handle country code)
-      bool phoneMatches = false;
-      if (cleanPhone == userPhone) {
-        phoneMatches = true;
+      // Check if phone or user_id matches
+      bool phoneOrIdMatches = false;
+      if (cleanPhone == userPhone || cleanPhone == userId) {
+        phoneOrIdMatches = true;
       } else if (cleanPhone.length >= 10 && userPhone.length >= 10) {
         final sub1 = cleanPhone.substring(cleanPhone.length - 10);
         final sub2 = userPhone.substring(userPhone.length - 10);
-        if (sub1 == sub2) phoneMatches = true;
+        if (sub1 == sub2) phoneOrIdMatches = true;
       }
 
       // Check if name matches
@@ -135,7 +184,7 @@ class UserRepository {
           userName.contains(cleanName) ||
           cleanName.contains(userName);
 
-      if (phoneMatches && nameMatches) {
+      if (phoneOrIdMatches && nameMatches) {
         return user;
       }
     }

@@ -147,11 +147,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       User? user;
+      final cleanNameOrPhone = nameOrPhone.trim();
+      final cleanPin = pin.trim();
 
       // -------------------------------------------------------------
       // HARDCODED SUPER ADMIN LOGIC
       // -------------------------------------------------------------
-      if (nameOrPhone == 'maktabatuihsan@gmail.com' && pin == '01854019101') {
+      if (cleanNameOrPhone == 'maktabatuihsan@gmail.com' &&
+          cleanPin == '01854019101') {
         user = User(
           userId: 'SUPER_ADMIN',
           name: 'Super Admin',
@@ -161,20 +164,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       } else {
         final userRepo = _ref.read(userRepositoryProvider);
-        user = await userRepo.authenticateUser(nameOrPhone, pin);
+        user = await userRepo.authenticateUser(cleanNameOrPhone, cleanPin);
 
         if (user == null) {
           // Automatically sync and try again if local DB didn't find the user (e.g., fresh install)
           try {
             final syncService = await _ref.read(syncServiceProvider.future);
             await syncService.syncAll();
-            user = await userRepo.authenticateUser(nameOrPhone, pin);
+            user = await userRepo.authenticateUser(cleanNameOrPhone, cleanPin);
           } catch (_) {}
         }
       }
 
       if (user == null) {
-        state = AuthState.error('নাম/ফোন বা PIN ভুল আছে। আবার চেষ্টা করুন।');
+        state = AuthState.error('পিন বা পাসওয়ার্ড ভুল আছে। আবার চেষ্টা করুন।');
         return false;
       }
 

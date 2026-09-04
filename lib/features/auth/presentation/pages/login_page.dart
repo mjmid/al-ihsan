@@ -8,6 +8,7 @@ import '../../../../core/widgets/maktaba_text_field.dart';
 import '../../../../core/theme/neu_card.dart';
 import '../../../../core/theme/neu_button.dart';
 import 'package:maktaba_ihsan/core/models/user_model.dart';
+import 'package:maktaba_ihsan/core/models/book_model.dart';
 import 'package:maktaba_ihsan/features/dashboard/presentation/pages/root_dashboard_page.dart';
 import 'forgot_password_page.dart';
 
@@ -46,8 +47,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   void _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final nameOrPhone = _usernameController.text.trim();
-      final pin = _pinController.text.trim();
+      final nameOrPhone =
+          _usernameController.text.trim().toEnglishNumerals;
+      final pin = _pinController.text.trim().toEnglishNumerals;
 
       final success =
           await ref.read(authProvider.notifier).login(nameOrPhone, pin);
@@ -148,12 +150,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               ).animate().fadeIn(delay: 700.ms),
                               const SizedBox(height: 32),
                               MaktabaTextField(
-                                label: 'ইউজারনেম',
-                                hint: 'example_user',
+                                label: 'পিন',
+                                hint: 'যেমন: ৮০৩৩৩৪ বা ফোন নম্বর',
                                 controller: _usernameController,
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
-                                    return 'দয়া করে ইউজারনেম দিন';
+                                    return 'দয়া করে পিন দিন';
                                   }
                                   return null;
                                 },
