@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/providers.dart';
 import '../../../../core/providers/settings_provider.dart';
+import '../../../../core/services/sync_service.dart';
 import '../../../../core/widgets/maktaba_text_field.dart';
 import '../../../../core/theme/neu_card.dart';
 import '../../../../core/theme/neu_button.dart';
