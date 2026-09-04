@@ -3,11 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../core/providers/auth_provider.dart';
-import '../../../../core/widgets/maktaba_button.dart';
 import '../../../../core/widgets/maktaba_text_field.dart';
 import '../../../../core/theme/neu_card.dart';
 import '../../../../core/theme/neu_button.dart';
-import 'package:maktaba_ihsan/core/models/user_model.dart';
 import 'package:maktaba_ihsan/core/models/book_model.dart';
 import 'package:maktaba_ihsan/features/dashboard/presentation/pages/root_dashboard_page.dart';
 import 'forgot_password_page.dart';
@@ -57,7 +55,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
 
       if (success) {
-        final authState = ref.read(authProvider);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const RootDashboardPage()),
@@ -86,6 +83,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     });
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final logoAsset =
+        isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo_light.png';
+    final calligraphyColor = isDark ? Colors.white : colorScheme.onSurface;
+
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SafeArea(
@@ -93,23 +95,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           children: [
             // Top App Title
             Padding(
-              padding: const EdgeInsets.only(top: 40.0, bottom: 20.0),
+              padding: const EdgeInsets.only(top: 28.0, bottom: 12.0),
               child: Column(
                 children: [
-                  Text(
-                    'মাকতাবাতুল ইহসান',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ).animate().fadeIn(delay: 200.ms).slideY(begin: -0.2),
-                  const SizedBox(height: 16),
-                  Icon(
-                    Icons.menu_book,
-                    size: 80,
-                    color: colorScheme.primary,
-                  ).animate().scale(delay: 400.ms, duration: 600.ms),
+                  Image.asset(
+                    logoAsset,
+                    height: 85,
+                    fit: BoxFit.contain,
+                  ).animate().scale(delay: 200.ms, duration: 600.ms),
+                  const SizedBox(height: 12),
+                  Image.asset(
+                    'assets/images/calligraphy.png',
+                    height: 38,
+                    fit: BoxFit.contain,
+                    color: calligraphyColor,
+                  ).animate().fadeIn(delay: 350.ms),
                 ],
               ),
             ),

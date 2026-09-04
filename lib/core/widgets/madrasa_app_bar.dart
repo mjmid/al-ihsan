@@ -24,44 +24,47 @@ class MadrasaAppBar extends ConsumerWidget implements PreferredSizeWidget {
       titleFontFamily = 'BengaliSolaiman';
     }
 
-    // Force LTR so logo is always left, actions always right
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final logoAsset =
+        isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo_light.png';
+    final calligraphyColor = isDark ? Colors.white : colorScheme.onSurface;
+
+    // Force LTR so logo/calligraphy is always left, actions always right
     return Directionality(
       textDirection: TextDirection.ltr,
       child: AppBar(
         leading: leading,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/logo.png',
-                  height: 32,
+                  logoAsset,
+                  height: 34,
+                  fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.school, size: 32, color: colorScheme.primary),
+                      Icon(Icons.school, size: 34, color: colorScheme.primary),
                 ),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'জামেআ মারকাযুল ইহসান ঢাকা',
-                    style: TextStyle(
-                      fontFamily: 'BengaliSolaiman',
-                      fontSize: 24,
-                      color: colorScheme.onSurface,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Image.asset(
+                  'assets/images/calligraphy.png',
+                  height: 26,
+                  fit: BoxFit.contain,
+                  color: calligraphyColor,
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               title,
               style: TextStyle(
                 fontFamily: titleFontFamily,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface.withOpacity(0.8),
+                color: colorScheme.onSurface.withOpacity(0.85),
               ),
             ),
           ],

@@ -21,47 +21,45 @@ class MadrasaAppBarTitle extends ConsumerWidget {
       titleFontFamily = 'BengaliSolaiman';
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final logoAsset =
+        isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo_light.png';
+    final calligraphyColor = isDark ? Colors.white : colorScheme.onSurface;
+
     return Directionality(
-      // Force LTR so logo/name always stays on the left
+      // Force LTR so logo/calligraphy always stays on the left
       textDirection: TextDirection.ltr,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/logo.png',
-                height: 52,
+                logoAsset,
+                height: 48,
+                fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.school, size: 52, color: colorScheme.primary),
+                    Icon(Icons.school, size: 48, color: colorScheme.primary),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'জামেআ মারকাযুল ইহসান ঢাকা',
-                    // Always use SolaimanLipi for the Bangla madrasa name
-                    style: TextStyle(
-                      fontFamily: 'BengaliSolaiman',
-                      fontSize: 34,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
+              const SizedBox(width: 10),
+              Image.asset(
+                'assets/images/calligraphy.png',
+                height: 38,
+                fit: BoxFit.contain,
+                color: calligraphyColor,
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             title,
             style: TextStyle(
               fontFamily: titleFontFamily,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface.withOpacity(0.8),
+              color: colorScheme.onSurface.withOpacity(0.85),
             ),
           ),
         ],
