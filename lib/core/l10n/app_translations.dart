@@ -315,6 +315,8 @@ class AppTranslations {
   String get deleteRoutineConfirm => _get({'bn': 'আপনি কি এই রুটিনটি মুছে ফেলতে চান?', 'en': 'Do you want to delete this routine?', 'ar': 'هل تريد بالتأكيد حذف هذا الروتين؟', 'ur': 'کیا آپ واقعی اس روٹین کو حذف کرنا چاہتے ہیں؟'});
   String get classesCount => _get({'bn': 'টি ক্লাস', 'en': 'Classes', 'ar': 'حصص', 'ur': 'کلاسز'});
   String get cancel => _get({'bn': 'বাতিল', 'en': 'Cancel', 'ar': 'إلغاء', 'ur': 'منسوخ'});
+  String get periodNumberLabel => _get({'bn': 'ঘণ্টা / দরস নং', 'en': 'Period / Hour No.', 'ar': 'رقم الحصة / الدرس', 'ur': 'گھنٹہ / پیریڈ نمبر'});
+  String get periodNumberHint => _get({'bn': 'যেমন: ১ম ঘণ্টা', 'en': 'e.g. 1st Period', 'ar': 'مثال: الحصة الأولى', 'ur': 'مثال: پہلا گھنٹہ'});
 
   // Helper
   String _get(Map<String, String> values) {

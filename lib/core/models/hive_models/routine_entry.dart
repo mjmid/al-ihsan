@@ -31,6 +31,7 @@ class RoutineEntry extends HiveObject {
     required this.subjectName,
     required this.className,
     this.roomNumber,
+    this.periodNumber,
     this.reminderMinutes,
     this.nightBeforeAlarm = false,
     this.nightBeforeAlarmTime,
@@ -95,4 +96,8 @@ class RoutineEntry extends HiveObject {
   /// Time for the night before alarm in HH:mm format, e.g. "21:00"
   @HiveField(13)
   String? nightBeforeAlarmTime;
+
+  /// Period or daras number/label, e.g. "১ম ঘণ্টা" (optional).
+  @HiveField(14)
+  String? periodNumber;
 }

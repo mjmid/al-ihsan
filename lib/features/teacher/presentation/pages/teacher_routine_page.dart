@@ -58,7 +58,8 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
           children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.red),
             const SizedBox(width: 8),
-            Text(t.delete, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(t.delete,
+                style: const TextStyle(fontWeight: FontWeight.normal)),
           ],
         ),
         content: Text(t.deleteRoutineConfirm),
@@ -142,14 +143,14 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
             labelStyle: TextStyle(
               fontFamily: appFontFamily,
               fontFamilyFallback: fontFallback,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.normal,
               fontSize: locale == 'ur' ? 16 : 14,
             ),
             unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
             unselectedLabelStyle: TextStyle(
               fontFamily: appFontFamily,
               fontFamilyFallback: fontFallback,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.normal,
               fontSize: locale == 'ur' ? 15 : 13,
             ),
             dividerColor: Colors.transparent,
@@ -166,6 +167,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                         style: TextStyle(
                           fontFamily: appFontFamily,
                           fontFamilyFallback: fontFallback,
+                          fontWeight: FontWeight.normal,
                         ),
                       ),
                       if (isToday) ...[
@@ -200,7 +202,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
           style: TextStyle(
             fontFamily: appFontFamily,
             fontFamilyFallback: fontFallback,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.normal,
           ),
         ),
       ),
@@ -244,7 +246,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                           t.noRoutineToday,
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.normal,
                             color: theme.colorScheme.onSurface,
                             fontFamily: appFontFamily,
                             fontFamilyFallback: fontFallback,
@@ -272,6 +274,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                             style: TextStyle(
                               fontFamily: appFontFamily,
                               fontFamilyFallback: fontFallback,
+                              fontWeight: FontWeight.normal,
                             ),
                           ),
                           style: FilledButton.styleFrom(
@@ -328,7 +331,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                 Text(
                                   _days[index],
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.normal,
                                     fontSize: 14,
                                     color: isToday
                                         ? theme.colorScheme.primary
@@ -357,7 +360,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 10,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.normal,
                                       ),
                                     ),
                                   ),
@@ -385,7 +388,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                   '${routines.length} ${t.classesCount}',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.normal,
                                     color: theme.colorScheme.primary,
                                     fontFamily: appFontFamily,
                                     fontFamilyFallback: fontFallback,
@@ -412,9 +415,9 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Left Side: Time Slot Badge
+                              // Left Side: Time Slot Badge & Period Badge
                               Container(
-                                width: 92,
+                                width: 95,
                                 decoration: BoxDecoration(
                                   color: theme.colorScheme.primary
                                       .withOpacity(isDark ? 0.18 : 0.1),
@@ -431,23 +434,56 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                   ),
                                 ),
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 14, horizontal: 8),
+                                    vertical: 12, horizontal: 6),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      Icons.access_time_rounded,
-                                      size: 16,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      routine.startTime,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: theme.colorScheme.primary,
+                                    if (routine.periodNumber != null &&
+                                        routine.periodNumber!.isNotEmpty) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        margin:
+                                            const EdgeInsets.only(bottom: 6),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          routine.periodNumber!,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.normal,
+                                            fontFamily: appFontFamily,
+                                            fontFamilyFallback: fontFallback,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
+                                    ],
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.access_time_rounded,
+                                          size: 14,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          routine.startTime,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.normal,
+                                            fontSize: 15,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     Container(
                                       margin: const EdgeInsets.symmetric(
@@ -463,14 +499,14 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                         color:
                                             theme.colorScheme.onSurfaceVariant,
                                         fontSize: 13,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.normal,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
 
-                              // Middle: Subject & Jamat Details
+                              // Middle: Subject, Jamat & Period Details
                               Expanded(
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -494,7 +530,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                               routine.subjectName,
                                               style: TextStyle(
                                                 fontSize: 16,
-                                                fontWeight: FontWeight.bold,
+                                                fontWeight: FontWeight.normal,
                                                 color:
                                                     theme.colorScheme.onSurface,
                                                 fontFamily: appFontFamily,
@@ -536,7 +572,8 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                                     color: theme
                                                         .colorScheme.onSurface,
                                                     fontSize: 12,
-                                                    fontWeight: FontWeight.w500,
+                                                    fontWeight:
+                                                        FontWeight.normal,
                                                     fontFamily: appFontFamily,
                                                     fontFamilyFallback:
                                                         fontFallback,
@@ -554,7 +591,8 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                                       vertical: 3),
                                               decoration: BoxDecoration(
                                                 color: theme
-                                                    .colorScheme.surfaceContainerHighest
+                                                    .colorScheme
+                                                    .surfaceContainerHighest
                                                     .withOpacity(0.5),
                                                 borderRadius:
                                                     BorderRadius.circular(6),
@@ -575,6 +613,8 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                                       color: theme.colorScheme
                                                           .onSurfaceVariant,
                                                       fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.normal,
                                                       fontFamily: appFontFamily,
                                                       fontFamilyFallback:
                                                           fontFallback,
@@ -671,6 +711,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
   final _subjectController = TextEditingController();
   final _classController = TextEditingController();
   final _roomController = TextEditingController();
+  final _periodController = TextEditingController();
   final _startTimeController = TextEditingController(text: '08:00');
   final _endTimeController = TextEditingController(text: '09:00');
   final _nightBeforeAlarmTimeController = TextEditingController(text: '21:00');
@@ -689,6 +730,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
       _subjectController.text = r.subjectName;
       _classController.text = r.className;
       _roomController.text = r.roomNumber ?? '';
+      _periodController.text = r.periodNumber ?? '';
       _startTimeController.text = r.startTime;
       _endTimeController.text = r.endTime;
       _selectedDays = r.daysOfWeek.toSet();
@@ -703,6 +745,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
     _subjectController.addListener(_updateUI);
     _classController.addListener(_updateUI);
     _startTimeController.addListener(_updateUI);
+    _periodController.addListener(_updateUI);
   }
 
   void _updateUI() {
@@ -714,9 +757,11 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
     _subjectController.removeListener(_updateUI);
     _classController.removeListener(_updateUI);
     _startTimeController.removeListener(_updateUI);
+    _periodController.removeListener(_updateUI);
     _subjectController.dispose();
     _classController.dispose();
     _roomController.dispose();
+    _periodController.dispose();
     _startTimeController.dispose();
     _endTimeController.dispose();
     _nightBeforeAlarmTimeController.dispose();
@@ -737,6 +782,9 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
       roomNumber: _roomController.text.trim().isEmpty
           ? null
           : _roomController.text.trim(),
+      periodNumber: _periodController.text.trim().isEmpty
+          ? null
+          : _periodController.text.trim(),
       reminderMinutes: _reminderMinutes,
       nightBeforeAlarm: _nightBeforeAlarm,
       nightBeforeAlarmTime:
@@ -760,6 +808,54 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
     }
   }
 
+  List<String> _getQuickPeriods(String locale) {
+    if (locale == 'ur') {
+      return [
+        'پہلا گھنٹہ',
+        'دوسرا گھنٹہ',
+        'تیسرا گھنٹہ',
+        'چوتھا گھنٹہ',
+        'پانچواں گھنٹہ',
+        'چھٹا گھنٹہ',
+        'ساتواں گھنٹہ',
+        'آٹھواں گھنٹہ',
+      ];
+    } else if (locale == 'ar') {
+      return [
+        'الحصة الأولى',
+        'الحصة الثانية',
+        'الحصة الثالثة',
+        'الحصة الرابعة',
+        'الحصة الخامسة',
+        'الحصة السادسة',
+        'الحصة السابعة',
+        'الحصة الثامنة',
+      ];
+    } else if (locale == 'en') {
+      return [
+        '1st Period',
+        '2nd Period',
+        '3rd Period',
+        '4th Period',
+        '5th Period',
+        '6th Period',
+        '7th Period',
+        '8th Period',
+      ];
+    } else {
+      return [
+        '১ম ঘণ্টা',
+        '২য় ঘণ্টা',
+        '৩য় ঘণ্টা',
+        '৪র্থ ঘণ্টা',
+        '৫ম ঘণ্টা',
+        '৬ষ্ঠ ঘণ্টা',
+        '৭ম ঘণ্টা',
+        '৮ম ঘণ্টা',
+      ];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationProvider);
@@ -777,6 +873,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
             : const ['ArabicMyLotus', 'UrduNastaleeq']);
 
     _days = [t.mon, t.tue, t.wed, t.thu, t.fri, t.sat, t.sun];
+    final quickPeriods = _getQuickPeriods(locale);
 
     return Container(
       decoration: BoxDecoration(
@@ -803,7 +900,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
                         : t.addNewRoutine,
                     style: TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.normal,
                       fontFamily: appFontFamily,
                       fontFamilyFallback: fontFallback,
                     ),
@@ -818,6 +915,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
               ],
             ),
             const SizedBox(height: 20),
+            // Subject Name
             TextField(
               controller: _subjectController,
               decoration: InputDecoration(
@@ -827,6 +925,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
               ),
             ),
             const SizedBox(height: 16),
+            // Class & Room
             Row(
               children: [
                 Expanded(
@@ -853,6 +952,62 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
               ],
             ),
             const SizedBox(height: 16),
+            // Period / Hour Number Input
+            TextField(
+              controller: _periodController,
+              decoration: InputDecoration(
+                labelText: t.periodNumberLabel,
+                hintText: t.periodNumberHint,
+                prefixIcon: const Icon(Icons.format_list_numbered_rounded),
+                border: const OutlineInputBorder(),
+                suffixIcon: _periodController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () =>
+                            setState(() => _periodController.clear()),
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Quick Period Suggestion Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: quickPeriods.map((period) {
+                  final isSelected = _periodController.text == period;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6.0),
+                    child: ChoiceChip(
+                      label: Text(
+                        period,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: appFontFamily,
+                          fontFamilyFallback: fontFallback,
+                          fontWeight: FontWeight.normal,
+                          color: isSelected
+                              ? Colors.white
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor: theme.colorScheme.primary,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest
+                          .withOpacity(0.5),
+                      showCheckmark: false,
+                      onSelected: (val) {
+                        setState(() {
+                          _periodController.text = val ? period : '';
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Time Pickers
             Row(
               children: [
                 Expanded(
@@ -883,10 +1038,11 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
               ],
             ),
             const SizedBox(height: 20),
+            // Days selector
             Text(
               t.selectDays,
               style: TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.normal,
                 fontFamily: appFontFamily,
                 fontFamilyFallback: fontFallback,
               ),
@@ -904,8 +1060,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
                     style: TextStyle(
                       fontFamily: appFontFamily,
                       fontFamilyFallback: fontFallback,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: FontWeight.normal,
                     ),
                   ),
                   selected: isSelected,
@@ -926,10 +1081,11 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
               }),
             ),
             const SizedBox(height: 20),
+            // Reminder dropdown
             Text(
               t.alarmAndReminder,
               style: TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.normal,
                 fontFamily: appFontFamily,
                 fontFamilyFallback: fontFallback,
               ),
@@ -954,7 +1110,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
                 style: TextStyle(
                   fontFamily: appFontFamily,
                   fontFamilyFallback: fontFallback,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
               subtitle: Text(
@@ -1000,7 +1156,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
                 t.saveBtn,
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.normal,
                   fontFamily: appFontFamily,
                   fontFamilyFallback: fontFallback,
                 ),

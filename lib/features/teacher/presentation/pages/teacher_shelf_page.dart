@@ -4,6 +4,7 @@ import 'package:maktaba_ihsan/core/providers/transaction_providers.dart';
 import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
 import 'package:maktaba_ihsan/core/models/transaction_model.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
+import 'package:maktaba_ihsan/core/providers/settings_provider.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'package:intl/intl.dart';
 import 'package:maktaba_ihsan/core/providers/providers.dart';
@@ -22,6 +23,16 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
   Widget build(BuildContext context) {
     final t = ref.watch(translationProvider);
     final authState = ref.watch(authProvider);
+    final settings = ref.watch(appSettingsProvider);
+    final locale = settings.locale.languageCode;
+    final String appFontFamily = locale == 'ar'
+        ? 'ArabicMyLotus'
+        : (locale == 'ur' ? 'UrduNastaleeq' : 'BengaliSolaiman');
+    final List<String> fontFallback = locale == 'ar'
+        ? const ['BengaliSolaiman', 'UrduNastaleeq']
+        : (locale == 'ur'
+            ? const ['ArabicMyLotus', 'BengaliSolaiman']
+            : const ['ArabicMyLotus', 'UrduNastaleeq']);
     final userId = authState.userId;
 
     if (userId == null) {
@@ -46,9 +57,13 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
               .toList();
 
           List<LibraryTransaction> currentList;
-          if (_selectedTab == 0) currentList = activeBooks;
-          else if (_selectedTab == 1) currentList = pendingRequests;
-          else currentList = readBooks;
+          if (_selectedTab == 0) {
+            currentList = activeBooks;
+          } else if (_selectedTab == 1) {
+            currentList = pendingRequests;
+          } else {
+            currentList = readBooks;
+          }
 
           return Column(
             children: [
@@ -58,11 +73,11 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
-                    _buildTab(context, 0, t.currentlyWithMe, Icons.menu_book, activeBooks.length),
+                    _buildTab(context, 0, t.currentlyWithMe, Icons.menu_book, activeBooks.length, appFontFamily, fontFallback),
                     const SizedBox(width: 8),
-                    _buildTab(context, 1, t.pendingRequests, Icons.hourglass_empty, pendingRequests.length),
+                    _buildTab(context, 1, t.pendingRequests, Icons.hourglass_empty, pendingRequests.length, appFontFamily, fontFallback),
                     const SizedBox(width: 8),
-                    _buildTab(context, 2, t.previouslyRead, Icons.done_all, readBooks.length),
+                    _buildTab(context, 2, t.previouslyRead, Icons.done_all, readBooks.length, appFontFamily, fontFallback),
                   ],
                 ),
               ),
@@ -115,7 +130,8 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
     );
   }
 
-  Widget _buildTab(BuildContext context, int index, String label, IconData icon, int count) {
+  Widget _buildTab(BuildContext context, int index, String label, IconData icon,
+      int count, String appFontFamily, List<String> fontFallback) {
     final isSelected = _selectedTab == index;
     final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
@@ -125,7 +141,9 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? colorScheme.primary : Colors.transparent,
@@ -133,15 +151,22 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
           ),
           child: Column(
             children: [
-              Icon(icon, size: 18,
-                  color: isSelected ? Colors.white : colorScheme.onSurfaceVariant),
+              Icon(icon,
+                  size: 18,
+                  color: isSelected
+                      ? Colors.white
+                      : colorScheme.onSurfaceVariant),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.normal,
+                  fontFamily: appFontFamily,
+                  fontFamilyFallback: fontFallback,
+                  color: isSelected
+                      ? Colors.white
+                      : colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -150,17 +175,24 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
               if (count > 0) ...[
                 const SizedBox(height: 2),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.white.withOpacity(0.3) : colorScheme.onSurfaceVariant.withOpacity(0.2),
+                    color: isSelected
+                        ? Colors.white.withOpacity(0.3)
+                        : colorScheme.onSurfaceVariant.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '$count',
                     style: TextStyle(
                       fontSize: 10,
-                      color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.normal,
+                      fontFamily: appFontFamily,
+                      fontFamilyFallback: fontFallback,
                     ),
                   ),
                 ),

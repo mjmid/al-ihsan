@@ -24,6 +24,7 @@ class RoutineEntryAdapter extends TypeAdapter<RoutineEntry> {
       subjectName: fields[4] as String,
       className: fields[5] as String,
       roomNumber: fields[10] as String?,
+      periodNumber: fields[14] as String?,
       reminderMinutes: fields[11] as int?,
       nightBeforeAlarm: fields[12] as bool,
       nightBeforeAlarmTime: fields[13] as String?,
@@ -36,7 +37,7 @@ class RoutineEntryAdapter extends TypeAdapter<RoutineEntry> {
   @override
   void write(BinaryWriter writer, RoutineEntry obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(2)
@@ -62,7 +63,9 @@ class RoutineEntryAdapter extends TypeAdapter<RoutineEntry> {
       ..writeByte(12)
       ..write(obj.nightBeforeAlarm)
       ..writeByte(13)
-      ..write(obj.nightBeforeAlarmTime);
+      ..write(obj.nightBeforeAlarmTime)
+      ..writeByte(14)
+      ..write(obj.periodNumber);
   }
 
   @override
