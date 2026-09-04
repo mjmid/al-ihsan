@@ -24,7 +24,6 @@ class MadrasaAppBarTitle extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final logoAsset =
         isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo_light.png';
-    final calligraphyColor = isDark ? Colors.white : colorScheme.onSurface;
 
     return Directionality(
       // Force LTR so logo/calligraphy always stays on the left
@@ -38,26 +37,37 @@ class MadrasaAppBarTitle extends ConsumerWidget {
             children: [
               Image.asset(
                 logoAsset,
-                height: 48,
+                height: 56,
                 fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
                 errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.school, size: 48, color: colorScheme.primary),
+                    Icon(Icons.school, size: 56, color: colorScheme.primary),
               ),
-              const SizedBox(width: 10),
-              Image.asset(
-                'assets/images/calligraphy.png',
-                height: 38,
-                fit: BoxFit.contain,
-                color: calligraphyColor,
+              const SizedBox(width: 12),
+              ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  colors: isDark
+                      ? const [Color(0xFF6EE7B7), Color(0xFF10B981)]
+                      : const [Color(0xFF1F9E5C), Color(0xFF047857)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                blendMode: BlendMode.srcIn,
+                child: Image.asset(
+                  'assets/images/calligraphy.png',
+                  height: 46,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             title,
             style: TextStyle(
               fontFamily: titleFontFamily,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
               color: colorScheme.onSurface.withOpacity(0.85),
             ),

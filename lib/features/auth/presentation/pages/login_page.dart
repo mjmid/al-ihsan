@@ -86,7 +86,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final logoAsset =
         isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo_light.png';
-    final calligraphyColor = isDark ? Colors.white : colorScheme.onSurface;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -100,15 +99,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   Image.asset(
                     logoAsset,
-                    height: 85,
+                    height: 95,
                     fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
                   ).animate().scale(delay: 200.ms, duration: 600.ms),
                   const SizedBox(height: 12),
-                  Image.asset(
-                    'assets/images/calligraphy.png',
-                    height: 38,
-                    fit: BoxFit.contain,
-                    color: calligraphyColor,
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: isDark
+                          ? const [Color(0xFF6EE7B7), Color(0xFF10B981)]
+                          : const [Color(0xFF1F9E5C), Color(0xFF047857)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    blendMode: BlendMode.srcIn,
+                    child: Image.asset(
+                      'assets/images/calligraphy.png',
+                      height: 44,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                    ),
                   ).animate().fadeIn(delay: 350.ms),
                 ],
               ),

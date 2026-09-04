@@ -27,8 +27,6 @@ class MadrasaAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final logoAsset =
         isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo_light.png';
-    final calligraphyColor = isDark ? Colors.white : colorScheme.onSurface;
-
     // Force LTR so logo/calligraphy is always left, actions always right
     return Directionality(
       textDirection: TextDirection.ltr,
@@ -43,17 +41,28 @@ class MadrasaAppBar extends ConsumerWidget implements PreferredSizeWidget {
               children: [
                 Image.asset(
                   logoAsset,
-                  height: 34,
+                  height: 42,
                   fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
                   errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.school, size: 34, color: colorScheme.primary),
+                      Icon(Icons.school, size: 42, color: colorScheme.primary),
                 ),
                 const SizedBox(width: 8),
-                Image.asset(
-                  'assets/images/calligraphy.png',
-                  height: 26,
-                  fit: BoxFit.contain,
-                  color: calligraphyColor,
+                ShaderMask(
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: isDark
+                        ? const [Color(0xFF6EE7B7), Color(0xFF10B981)]
+                        : const [Color(0xFF1F9E5C), Color(0xFF047857)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ).createShader(bounds),
+                  blendMode: BlendMode.srcIn,
+                  child: Image.asset(
+                    'assets/images/calligraphy.png',
+                    height: 34,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
                 ),
               ],
             ),
