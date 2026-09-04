@@ -99,11 +99,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   Image.asset(
                     logoAsset,
-                    height: 95,
+                    height: 84,
                     fit: BoxFit.contain,
                     filterQuality: FilterQuality.high,
                   ).animate().scale(delay: 200.ms, duration: 600.ms),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   ShaderMask(
                     shaderCallback: (bounds) => LinearGradient(
                       colors: isDark
@@ -115,7 +115,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     blendMode: BlendMode.srcIn,
                     child: Image.asset(
                       'assets/images/calligraphy.png',
-                      height: 44,
+                      height: 40,
                       fit: BoxFit.contain,
                       filterQuality: FilterQuality.high,
                     ),

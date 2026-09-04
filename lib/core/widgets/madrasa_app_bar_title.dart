@@ -37,13 +37,13 @@ class MadrasaAppBarTitle extends ConsumerWidget {
             children: [
               Image.asset(
                 logoAsset,
-                height: 56,
+                height: 45,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.school, size: 56, color: colorScheme.primary),
+                    Icon(Icons.school, size: 45, color: colorScheme.primary),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               ShaderMask(
                 shaderCallback: (bounds) => LinearGradient(
                   colors: isDark
@@ -55,7 +55,7 @@ class MadrasaAppBarTitle extends ConsumerWidget {
                 blendMode: BlendMode.srcIn,
                 child: Image.asset(
                   'assets/images/calligraphy.png',
-                  height: 46,
+                  height: 40,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
                 ),
