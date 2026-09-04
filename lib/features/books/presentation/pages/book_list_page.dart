@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/filter_segmented_control.dart';
-import '../../../../core/widgets/category_filter_bar.dart';
 import '../../../../core/widgets/madrasa_app_bar_title.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/models/book_model.dart';
 import '../../../../core/providers/book_providers.dart';
-
-import '../../../../core/widgets/dynamic_font_text.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import '../widgets/book_status_badge.dart';
@@ -38,7 +35,6 @@ class BookListPage extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     final categories = categoriesAsync.asData?.value ?? [];
-    final bool hasMultipleCategories = categories.length > 1;
 
     return Scaffold(
       floatingActionButton: isAdmin
@@ -62,9 +58,7 @@ class BookListPage extends ConsumerWidget {
             floating: true,
             bottom: PreferredSize(
               preferredSize: Size.fromHeight(
-                showStatusFilter
-                    ? 120
-                    : (hasMultipleCategories ? 120 : 68),
+                showStatusFilter ? 118 : 66,
               ),
               child: Column(
                 children: [
@@ -93,16 +87,15 @@ class BookListPage extends ConsumerWidget {
                             },
                           ),
                         ),
-                        if (categories.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          _buildCategoryButton(
-                            context,
-                            ref,
-                            categories: categories,
-                            selectedCategory: selectedCategory,
-                            colorScheme: colorScheme,
-                          ),
-                        ],
+                        const SizedBox(width: 8),
+                        _buildCategoryButton(
+                          context,
+                          ref,
+                          categories: categories,
+                          selectedCategory: selectedCategory,
+                          colorScheme: colorScheme,
+                          isLoading: categoriesAsync.isLoading,
+                        ),
                       ],
                     ),
                   ),
@@ -127,20 +120,6 @@ class BookListPage extends ConsumerWidget {
                         onChanged: (status) {
                           ref.read(bookStatusFilterProvider.notifier).state =
                               status;
-                        },
-                      ),
-                    )
-                  else if (hasMultipleCategories)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 4.0),
-                      child: CategoryFilterBar(
-                        categories: categories,
-                        selectedCategory: selectedCategory,
-                        allLabel: t.all,
-                        onChanged: (cat) {
-                          ref.read(bookCategoryFilterProvider.notifier).state =
-                              cat;
                         },
                       ),
                     ),
@@ -205,130 +184,237 @@ class BookListPage extends ConsumerWidget {
     required List<String> categories,
     required String? selectedCategory,
     required ColorScheme colorScheme,
+    required bool isLoading,
   }) {
-    if (categories.isEmpty) return const SizedBox.shrink();
-
-    final isSelected = selectedCategory != null;
+    if (selectedCategory != null) {
+      return Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: colorScheme.primary,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withOpacity(0.25),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PopupMenuButton<String?>(
+              initialValue: selectedCategory,
+              tooltip: 'বিভাগ পরিবর্তন করুন',
+              elevation: 6,
+              offset: const Offset(0, 52),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              onSelected: (cat) {
+                ref.read(bookCategoryFilterProvider.notifier).state = cat;
+              },
+              itemBuilder: (ctx) => _buildCategoryMenuItems(
+                categories: categories,
+                selectedCategory: selectedCategory,
+                isLoading: isLoading,
+                colorScheme: colorScheme,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(
+                    left: 12, top: 12, bottom: 12, right: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_rounded,
+                        size: 16, color: colorScheme.onPrimary),
+                    const SizedBox(width: 6),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 85),
+                      child: Text(
+                        selectedCategory,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down,
+                        size: 18, color: colorScheme.onPrimary),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  ref.read(bookCategoryFilterProvider.notifier).state = null;
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Icon(Icons.close_rounded,
+                      size: 16, color: colorScheme.onPrimary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return PopupMenuButton<String?>(
       initialValue: selectedCategory,
       tooltip: 'বিষয় / বিভাগ ফিল্টার',
       elevation: 6,
-      offset: const Offset(0, 48),
+      offset: const Offset(0, 52),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (cat) {
         ref.read(bookCategoryFilterProvider.notifier).state = cat;
       },
-      itemBuilder: (ctx) => [
-        PopupMenuItem<String?>(
-          value: null,
-          child: Row(
-            children: [
-              Icon(
-                selectedCategory == null
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_off,
-                size: 18,
-                color: selectedCategory == null ? colorScheme.primary : null,
-              ),
-              const SizedBox(width: 8),
-              const Text('সব বিভাগ',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        ...categories.map(
-          (cat) => PopupMenuItem<String?>(
-            value: cat,
-            child: Row(
-              children: [
-                Icon(
-                  selectedCategory == cat
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 18,
-                  color: selectedCategory == cat ? colorScheme.primary : null,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    cat,
-                    style: TextStyle(
-                      fontWeight: selectedCategory == cat
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      itemBuilder: (ctx) => _buildCategoryMenuItems(
+        categories: categories,
+        selectedCategory: selectedCategory,
+        isLoading: isLoading,
+        colorScheme: colorScheme,
+      ),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primary
-              : colorScheme.surfaceContainerHighest,
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : colorScheme.outline.withOpacity(0.12),
+            color: colorScheme.outline.withOpacity(0.12),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isSelected ? Icons.check_circle : Icons.tune_rounded,
+              Icons.tune_rounded,
               size: 18,
-              color: isSelected ? colorScheme.onPrimary : colorScheme.primary,
+              color: colorScheme.primary,
             ),
             const SizedBox(width: 6),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 90),
-              child: Text(
-                isSelected ? selectedCategory : 'বিভাগ',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? colorScheme.onPrimary
-                      : colorScheme.onSurface,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+            Text(
+              'বিভাগ',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(width: 2),
-            if (isSelected)
-              GestureDetector(
-                onTap: () {
-                  ref.read(bookCategoryFilterProvider.notifier).state = null;
-                },
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: colorScheme.onPrimary,
-                  ),
-                ),
-              )
-            else
-              Icon(
-                Icons.arrow_drop_down,
-                size: 18,
-                color: colorScheme.onSurfaceVariant,
-              ),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 20,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  List<PopupMenuEntry<String?>> _buildCategoryMenuItems({
+    required List<String> categories,
+    required String? selectedCategory,
+    required bool isLoading,
+    required ColorScheme colorScheme,
+  }) {
+    if (isLoading) {
+      return [
+        const PopupMenuItem<String?>(
+          enabled: false,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 10),
+              Text('বিভাগ লোড হচ্ছে...'),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    final items = <PopupMenuEntry<String?>>[
+      PopupMenuItem<String?>(
+        value: null,
+        child: Row(
+          children: [
+            Icon(
+              selectedCategory == null
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_off,
+              size: 18,
+              color: selectedCategory == null ? colorScheme.primary : null,
+            ),
+            const SizedBox(width: 10),
+            const Text('সব বিভাগ',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+      const PopupMenuDivider(),
+    ];
+
+    if (categories.isEmpty) {
+      items.add(
+        const PopupMenuItem<String?>(
+          enabled: false,
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, size: 18, color: Colors.grey),
+              SizedBox(width: 10),
+              Text(
+                'কোনো বিভাগ পাওয়া যায়নি',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      for (final cat in categories) {
+        final isSelected = selectedCategory == cat;
+        items.add(
+          PopupMenuItem<String?>(
+            value: cat,
+            child: Row(
+              children: [
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  size: 18,
+                  color: isSelected ? colorScheme.primary : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    cat,
+                    style: TextStyle(
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    return items;
   }
 }
 
