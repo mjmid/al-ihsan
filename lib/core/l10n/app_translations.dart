@@ -309,6 +309,13 @@ class AppTranslations {
   String get useTeacherDashboard => _get({'bn': 'শিক্ষক ড্যাশবোর্ড', 'en': 'Teacher Dashboard', 'ar': 'لوحة تحكم المعلم', 'ur': 'استاد کا ڈیش بورڈ'});
   String get volumeNoLabel => _get({'bn': 'খন্ড নং', 'en': 'Volume No', 'ar': 'رقم المجلد', 'ur': 'جلد نمبر'});
 
+  String get noRoutineToday => _get({'bn': 'আজকের কোনো রুটিন নেই', 'en': 'No routine for today', 'ar': 'لا يوجد روتين لهذا اليوم', 'ur': 'آج کا کوئی روٹین نہیں ہے'});
+  String get addRoutinePrompt => _get({'bn': 'নতুন রুটিন যোগ করতে নিচের বাটনে ক্লিক করুন', 'en': 'Click the button below to add a routine', 'ar': 'انقر على الزر أدناه لإضافة روتين', 'ur': 'نیا روٹین شامل کرنے کے لیے نیچے دیے گئے بٹن پر کلک کریں'});
+  String get editRoutine => _get({'bn': 'রুটিন এডিট করুন', 'en': 'Edit Routine', 'ar': 'تعديل الروتين', 'ur': 'روٹین میں ترمیم کریں'});
+  String get deleteRoutineConfirm => _get({'bn': 'আপনি কি এই রুটিনটি মুছে ফেলতে চান?', 'en': 'Do you want to delete this routine?', 'ar': 'هل تريد بالتأكيد حذف هذا الروتين؟', 'ur': 'کیا آپ واقعی اس روٹین کو حذف کرنا چاہتے ہیں؟'});
+  String get classesCount => _get({'bn': 'টি ক্লাস', 'en': 'Classes', 'ar': 'حصص', 'ur': 'کلاسز'});
+  String get cancel => _get({'bn': 'বাতিল', 'en': 'Cancel', 'ar': 'إلغاء', 'ur': 'منسوخ'});
+
   // Helper
   String _get(Map<String, String> values) {
     return values[locale] ?? values['en'] ?? values['bn'] ?? '';

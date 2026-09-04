@@ -88,18 +88,34 @@ flutter:
     - family: EkusheyBelycon
       fonts:
         - asset: assets/fonts/EkusheyBelycon.ttf
+        - asset: assets/fonts/EkusheyBelycon.ttf
+          weight: 700
     - family: UrduNastaleeq
       fonts:
         - asset: assets/fonts/JameelNooriNastaleeqKasheeda.ttf
+        - asset: assets/fonts/JameelNooriNastaleeqKasheeda.ttf
+          weight: 600
+        - asset: assets/fonts/JameelNooriNastaleeqKasheeda.ttf
+          weight: 700
     - family: ArabicMyLotus
       fonts:
         - asset: assets/fonts/mylotus Regular.ttf
+        - asset: assets/fonts/mylotus Regular.ttf
+          weight: 600
+        - asset: assets/fonts/mylotus Regular.ttf
+          weight: 700
     - family: ArabicUthmanic
       fonts:
         - asset: assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf
+        - asset: assets/fonts/KFGQPC Uthmanic Script HAFS Regular.otf
+          weight: 700
     - family: BengaliSolaiman
       fonts:
         - asset: assets/fonts/SolaimanLipi_22-02-2012.ttf
+        - asset: assets/fonts/SolaimanLipi_22-02-2012.ttf
+          weight: 600
+        - asset: assets/fonts/SolaimanLipi_22-02-2012.ttf
+          weight: 700
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: false
