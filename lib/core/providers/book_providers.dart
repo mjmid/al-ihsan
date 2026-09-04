@@ -12,12 +12,24 @@ final bookStatusFilterProvider = StateProvider<BookStatus?>((ref) => null);
 // Selected category filter
 final bookCategoryFilterProvider = StateProvider<String?>((ref) => null);
 
+// Selected author filter
+final bookAuthorFilterProvider = StateProvider<String?>((ref) => null);
+
+// Selected publisher / maktaba filter
+final bookPublisherFilterProvider = StateProvider<String?>((ref) => null);
+
+// Selected shelf filter
+final bookShelfFilterProvider = StateProvider<String?>((ref) => null);
+
 // Search results
 final bookSearchResultsProvider =
     FutureProvider.autoDispose<List<Book>>((ref) async {
   final query = ref.watch(bookSearchQueryProvider);
   final statusFilter = ref.watch(bookStatusFilterProvider);
   final categoryFilter = ref.watch(bookCategoryFilterProvider);
+  final authorFilter = ref.watch(bookAuthorFilterProvider);
+  final publisherFilter = ref.watch(bookPublisherFilterProvider);
+  final shelfFilter = ref.watch(bookShelfFilterProvider);
 
   final repository = ref.watch(bookRepositoryProvider);
 
@@ -40,9 +52,28 @@ final bookSearchResultsProvider =
     books = books.where((book) => book.status == statusFilter).toList();
   }
 
-  if (categoryFilter != null) {
-    books =
-        books.where((book) => book.subjectCategory == categoryFilter).toList();
+  if (categoryFilter != null && categoryFilter.isNotEmpty) {
+    books = books
+        .where((book) => book.subjectCategory?.trim() == categoryFilter.trim())
+        .toList();
+  }
+
+  if (authorFilter != null && authorFilter.isNotEmpty) {
+    books = books
+        .where((book) => book.author?.trim() == authorFilter.trim())
+        .toList();
+  }
+
+  if (publisherFilter != null && publisherFilter.isNotEmpty) {
+    books = books
+        .where((book) => book.publisher?.trim() == publisherFilter.trim())
+        .toList();
+  }
+
+  if (shelfFilter != null && shelfFilter.isNotEmpty) {
+    books = books
+        .where((book) => book.shelfNo?.trim() == shelfFilter.trim())
+        .toList();
   }
 
   return books;
@@ -58,6 +89,30 @@ final bookStatusCountsProvider = FutureProvider<Map<String, int>>((ref) async {
 final bookCategoriesProvider = FutureProvider<List<String>>((ref) async {
   final repository = ref.watch(bookRepositoryProvider);
   return await repository.getAllCategories();
+});
+
+// Author counts
+final bookAuthorCountsProvider = FutureProvider<Map<String, int>>((ref) async {
+  final repository = ref.watch(bookRepositoryProvider);
+  return await repository.getAuthorCounts();
+});
+
+// Publisher counts
+final bookPublisherCountsProvider = FutureProvider<Map<String, int>>((ref) async {
+  final repository = ref.watch(bookRepositoryProvider);
+  return await repository.getPublisherCounts();
+});
+
+// Category counts
+final bookCategoryCountsProvider = FutureProvider<Map<String, int>>((ref) async {
+  final repository = ref.watch(bookRepositoryProvider);
+  return await repository.getCategoryCounts();
+});
+
+// Shelf counts
+final bookShelfCountsProvider = FutureProvider<Map<String, int>>((ref) async {
+  final repository = ref.watch(bookRepositoryProvider);
+  return await repository.getShelfCounts();
 });
 
 // Single book by accession number

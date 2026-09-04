@@ -318,6 +318,19 @@ class AppTranslations {
   String get periodNumberLabel => _get({'bn': 'ঘণ্টা / দরস নং', 'en': 'Period / Hour No.', 'ar': 'رقم الحصة / الدرس', 'ur': 'گھنٹہ / پیریڈ نمبر'});
   String get periodNumberHint => _get({'bn': 'যেমন: ১ম ঘণ্টা', 'en': 'e.g. 1st Period', 'ar': 'مثال: الحصة الأولى', 'ur': 'مثال: پہلا گھنٹہ'});
 
+  String get allAuthors => _get({'bn': 'সব লেখক', 'en': 'All Authors', 'ar': 'جميع المؤلفين', 'ur': 'تمام مصنفین'});
+  String get allPublishers => _get({'bn': 'সব প্রকাশক/মাকতাবা', 'en': 'All Publishers', 'ar': 'جميع دور النشر', 'ur': 'تمام ناشرین'});
+  String get allSubjects => _get({'bn': 'সব বিষয়', 'en': 'All Subjects', 'ar': 'جميع الموضوعات', 'ur': 'تمام مضامین'});
+  String get allShelves => _get({'bn': 'সব শেলফ', 'en': 'All Shelves', 'ar': 'جميع الرفوف', 'ur': 'تمام شیلف'});
+  String get selectAuthor => _get({'bn': 'লেখক নির্বাচন করুন', 'en': 'Select Author', 'ar': 'اختر المؤلف', 'ur': 'مصنف منتخب کریں'});
+  String get selectPublisher => _get({'bn': 'প্রকাশক/মাকতাবা নির্বাচন করুন', 'en': 'Select Publisher', 'ar': 'اختر دار النشر', 'ur': 'ناشر منتخب کریں'});
+  String get selectCategory => _get({'bn': 'বিষয়/বিভাগ নির্বাচন করুন', 'en': 'Select Category', 'ar': 'اختر الفئة', 'ur': 'زمرہ منتخب کریں'});
+  String get selectShelf => _get({'bn': 'শেলফ নির্বাচন করুন', 'en': 'Select Shelf', 'ar': 'اختر الرف', 'ur': 'شیلف منتخب کریں'});
+  String get clearFilters => _get({'bn': 'ফিল্টার মুছুন', 'en': 'Clear Filters', 'ar': 'إزالة الفلاتর', 'ur': 'فلٹرز ختم کریں'});
+  String get filterLabel => _get({'bn': 'ফিল্টার', 'en': 'Filter', 'ar': 'تصفية', 'ur': 'فلٹر'});
+  String get booksFound => _get({'bn': 'টি কিতাব পাওয়া গেছে', 'en': 'books found', 'ar': 'كتب موجودة', 'ur': 'کتب دستیاب ہیں'});
+  String get searchInFilter => _get({'bn': 'খুঁজুন...', 'en': 'Search...', 'ar': 'بحث...', 'ur': 'تلاش کریں...'});
+
   // Helper
   String _get(Map<String, String> values) {
     return values[locale] ?? values['en'] ?? values['bn'] ?? '';

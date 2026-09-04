@@ -11,6 +11,7 @@
 ///   • [DatabaseHelper] — sqflite wrapper
 ///   • [SyncQueueNotifier] — offline sync queue
 /// ---------------------------------------------------------------------------
+library;
 
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 
@@ -227,6 +228,100 @@ class BookRepository {
         .map((r) => r['shelf_no'] as String)
         .where((s) => s.isNotEmpty)
         .toList();
+  }
+
+  /// Returns a sorted, deduplicated list of all authors.
+  Future<List<String>> getAllAuthors() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT DISTINCT author
+      FROM   $kBooksTable
+      WHERE  author IS NOT NULL AND author != ''
+      ORDER  BY author ASC
+    ''');
+    return rows
+        .map((r) => r['author'] as String)
+        .where((a) => a.isNotEmpty)
+        .toList();
+  }
+
+  /// Returns a map of author to book count, ordered by highest count.
+  Future<Map<String, int>> getAuthorCounts() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT author, COUNT(*) AS count
+      FROM   $kBooksTable
+      WHERE  author IS NOT NULL AND author != ''
+      GROUP  BY author
+      ORDER  BY count DESC, author ASC
+    ''');
+    return {
+      for (final r in rows)
+        (r['author'] as String): (r['count'] as int? ?? 0)
+    };
+  }
+
+  /// Returns a sorted, deduplicated list of all publishers.
+  Future<List<String>> getAllPublishers() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT DISTINCT publisher
+      FROM   $kBooksTable
+      WHERE  publisher IS NOT NULL AND publisher != ''
+      ORDER  BY publisher ASC
+    ''');
+    return rows
+        .map((r) => r['publisher'] as String)
+        .where((p) => p.isNotEmpty)
+        .toList();
+  }
+
+  /// Returns a map of publisher to book count, ordered by highest count.
+  Future<Map<String, int>> getPublisherCounts() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT publisher, COUNT(*) AS count
+      FROM   $kBooksTable
+      WHERE  publisher IS NOT NULL AND publisher != ''
+      GROUP  BY publisher
+      ORDER  BY count DESC, publisher ASC
+    ''');
+    return {
+      for (final r in rows)
+        (r['publisher'] as String): (r['count'] as int? ?? 0)
+    };
+  }
+
+  /// Returns a map of category to book count, ordered by highest count.
+  Future<Map<String, int>> getCategoryCounts() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT subject_category, COUNT(*) AS count
+      FROM   $kBooksTable
+      WHERE  subject_category IS NOT NULL AND subject_category != ''
+      GROUP  BY subject_category
+      ORDER  BY count DESC, subject_category ASC
+    ''');
+    return {
+      for (final r in rows)
+        (r['subject_category'] as String): (r['count'] as int? ?? 0)
+    };
+  }
+
+  /// Returns a map of shelf to book count, ordered by shelf name.
+  Future<Map<String, int>> getShelfCounts() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT shelf_no, COUNT(*) AS count
+      FROM   $kBooksTable
+      WHERE  shelf_no IS NOT NULL AND shelf_no != ''
+      GROUP  BY shelf_no
+      ORDER  BY shelf_no ASC
+    ''');
+    return {
+      for (final r in rows)
+        (r['shelf_no'] as String): (r['count'] as int? ?? 0)
+    };
   }
 
   // ---------------------------------------------------------------------------

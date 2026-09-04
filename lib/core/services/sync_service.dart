@@ -17,6 +17,7 @@
 /// Column name mapping:
 ///   Remote (PascalCase) → Local (snake_case) is handled by [_remoteToLocal].
 /// ---------------------------------------------------------------------------
+library;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -176,7 +177,21 @@ class SyncService {
         _log('Upserted ${localTxs.length} transactions');
       }
 
-      // 4. Update last_synced_at
+      // 4. Sync Assets
+      final rawAssets = data['assets'];
+      if (rawAssets != null) {
+        _log('Assets raw type: ${rawAssets.runtimeType}');
+        final assetsList = _toList(rawAssets);
+        if (assetsList.isNotEmpty) {
+          final localAssets =
+              assetsList.map((r) => _mapAssetsRow(_toMap(r))).toList();
+          await _dbHelper.batchUpsert(kAssetsTable, localAssets, 'asset_id');
+          totalSynced += localAssets.length;
+          _log('Upserted ${localAssets.length} assets');
+        }
+      }
+
+      // 5. Update last_synced_at
       final timestamp = data['timestamp']?.toString();
       if (timestamp != null && timestamp.isNotEmpty) {
         await _prefs.setString('last_synced_at', timestamp);
@@ -259,6 +274,23 @@ class SyncService {
         'status': (r['status']?.toString().trim().isEmpty ?? true)
             ? 'Active'
             : r['status'].toString().trim(),
+        'last_updated': r['last_updated']?.toString() ?? '',
+      };
+
+  /// Maps a remote Assets row to local column names.
+  Map<String, dynamic> _mapAssetsRow(Map<String, dynamic> r) => {
+        'asset_id': r['asset_id']?.toString() ?? '',
+        'name': r['name']?.toString() ?? '',
+        'category': r['category']?.toString() ?? '',
+        'quantity': int.tryParse(r['quantity']?.toString() ?? '1') ?? 1,
+        'unit': r['unit']?.toString() ?? 'টি',
+        'location': r['location']?.toString() ?? '',
+        'condition': r['condition']?.toString() ?? 'good',
+        'acquisition_type': r['acquisition_type']?.toString() ?? 'purchased',
+        'donor_or_source': r['donor_or_source']?.toString() ?? '',
+        'cost': double.tryParse(r['cost']?.toString() ?? ''),
+        'purchase_date': r['purchase_date']?.toString() ?? '',
+        'remarks': r['remarks']?.toString() ?? '',
         'last_updated': r['last_updated']?.toString() ?? '',
       };
 

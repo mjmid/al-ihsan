@@ -19,6 +19,7 @@ const SHEET_NAMES = {
   BOOKS: "Books",
   USERS: "Users",
   TRANSACTIONS: "Transactions",
+  ASSETS: "Assets",
   SYNC_LOG: "SyncLog"
 };
 
@@ -35,6 +36,11 @@ const HEADERS = {
   [SHEET_NAMES.TRANSACTIONS]: [
     'trx_id', 'accession_no', 'user_id', 'issue_date', 'expected_return',
     'actual_return', 'status', 'last_updated'
+  ],
+  [SHEET_NAMES.ASSETS]: [
+    'asset_id', 'name', 'category', 'quantity', 'unit',
+    'location', 'condition', 'acquisition_type', 'donor_or_source',
+    'cost', 'purchase_date', 'remarks', 'last_updated'
   ],
   [SHEET_NAMES.SYNC_LOG]: [
     'id', 'table_name', 'operation', 'record_id', 'synced_at'
@@ -113,6 +119,7 @@ function doGet(e) {
         books: getAllRows(SHEET_NAMES.BOOKS, lastSyncedAtMs),
         users: getAllRows(SHEET_NAMES.USERS, lastSyncedAtMs),
         transactions: getAllRows(SHEET_NAMES.TRANSACTIONS, lastSyncedAtMs),
+        assets: getAllRows(SHEET_NAMES.ASSETS, lastSyncedAtMs),
         timestamp: new Date().toISOString()
       };
 
