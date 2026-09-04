@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 
 import '../../../../core/models/asset_model.dart';
 import '../../../../core/providers/asset_providers.dart';
@@ -31,17 +32,10 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
     super.dispose();
   }
 
-  String _toBn(int n) {
-    const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-    return n.toString().split('').map((c) {
-      final idx = int.tryParse(c);
-      return idx != null ? bn[idx] : c;
-    }).join('');
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final t = ref.watch(translationProvider);
     final assetsAsync = ref.watch(filteredAssetsProvider);
     final summaryAsync = ref.watch(assetSummaryCountsProvider);
     final selectedCategory = ref.watch(assetCategoryFilterProvider);
@@ -60,7 +54,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
       floatingActionButton: widget.isAdmin
           ? FloatingActionButton(
               heroTag: 'add_asset_fab',
-              tooltip: 'নতুন মালামাল যোগ করুন',
+              tooltip: t.addNewAsset,
               onPressed: () {
                 Navigator.push(
                   context,
@@ -101,7 +95,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                         child: TextField(
                           controller: _searchController,
                           decoration: InputDecoration(
-                            hintText: 'মালামাল, অবস্থান বা দাতা খুঁজুন...',
+                            hintText: t.searchAssetsHint,
                             prefixIcon: const Icon(Icons.search, size: 20),
                             suffixIcon: searchQuery.isNotEmpty
                                 ? IconButton(
@@ -139,6 +133,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                         context,
                         ref,
                         categories: categories,
+                        t: t,
                         selectedCategory: selectedCategory,
                         colorScheme: colorScheme,
                         isLoading: categoriesAsync.isLoading,
@@ -148,6 +143,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                       // Print Report Button
                       _buildPrintButton(
                         context,
+                        t: t,
                         assets: allAssetsList,
                         colorScheme: colorScheme,
                       ),
@@ -163,6 +159,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                 data: (summary) => _buildSummaryBanner(
                   context,
                   ref,
+                  t: t,
                   summary: summary,
                   selectedCondition: selectedCondition,
                 ),
@@ -199,7 +196,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'সক্রিয় ফিল্টার:',
+                        t.activeFiltersLabel,
                         style: TextStyle(
                           fontSize: 12,
                           color: colorScheme.onSurfaceVariant,
@@ -214,7 +211,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                             children: [
                               if (selectedCategory != null) ...[
                                 _buildActiveTag(
-                                  label: selectedCategory,
+                                  label: t.translateCategory(selectedCategory),
                                   onDelete: () {
                                     ref
                                         .read(assetCategoryFilterProvider.notifier)
@@ -226,7 +223,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                               ],
                               if (selectedCondition != null) ...[
                                 _buildActiveTag(
-                                  label: selectedCondition.label,
+                                  label: selectedCondition.getLocalizedLabel(t),
                                   onDelete: () {
                                     ref
                                         .read(assetConditionFilterProvider.notifier)
@@ -267,8 +264,8 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                           minimumSize: const Size(40, 28),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          'সব মুছুন',
+                        child: Text(
+                          t.clearAll,
                           style: TextStyle(fontSize: 11),
                         ),
                       ),
@@ -306,9 +303,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                             ),
                             const SizedBox(height: 18),
                             Text(
-                              isFiltered
-                                  ? 'কোনো মালামাল মেলেনি'
-                                  : 'কোনো মালামাল এন্ট্রি করা হয়নি',
+                              isFiltered ? t.noAssetsMatched : t.noAssetsEntered,
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
@@ -317,9 +312,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              isFiltered
-                                  ? 'অনুসন্ধান বা ফিল্টারের শর্ত পরিবর্তন করে চেষ্টা করুন'
-                                  : 'মাকতাবার আসবাবপত্র, আলমারি, বুকশেলফ বা ইলেকট্রনিক্স সরঞ্জাম সংরক্ষণ করুন',
+                              isFiltered ? t.changeSearchFilterHint : t.assetEmptyPrompt,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
@@ -342,7 +335,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                                       .state = null;
                                 },
                                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                                label: const Text('ফিল্টার রিসেট করুন'),
+                                label: Text(t.resetFilters),
                                 style: OutlinedButton.styleFrom(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
@@ -364,7 +357,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                                   });
                                 },
                                 icon: const Icon(Icons.add, size: 18),
-                                label: const Text('নতুন মালামাল যোগ করুন'),
+                                label: Text(t.addNewAsset),
                                 style: FilledButton.styleFrom(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
@@ -391,7 +384,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final asset = assets[index];
-                        return _buildAssetTile(context, ref, asset);
+                        return _buildAssetTile(context, ref, t, asset);
                       },
                       childCount: assets.length,
                     ),
@@ -402,7 +395,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (e, st) => SliverFillRemaining(
-                child: Center(child: Text('ত্রুটি: $e')),
+                child: Center(child: Text('${t.error}: $e')),
               ),
             ),
 
@@ -420,6 +413,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
   Widget _buildCategoryButton(
     BuildContext context,
     WidgetRef ref, {
+    required AppTranslations t,
     required List<String> categories,
     required String? selectedCategory,
     required ColorScheme colorScheme,
@@ -444,7 +438,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
           children: [
             PopupMenuButton<String?>(
               initialValue: selectedCategory,
-              tooltip: 'বিভাগ পরিবর্তন করুন',
+              tooltip: t.changeCategory,
               elevation: 6,
               offset: const Offset(0, 52),
               shape: RoundedRectangleBorder(
@@ -454,6 +448,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                 ref.read(assetCategoryFilterProvider.notifier).state = cat;
               },
               itemBuilder: (ctx) => _buildCategoryMenuItems(
+                t: t,
                 categories: categories,
                 selectedCategory: selectedCategory,
                 isLoading: isLoading,
@@ -478,7 +473,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 85),
                       child: Text(
-                        selectedCategory,
+                        t.translateCategory(selectedCategory),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -521,7 +516,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
 
     return PopupMenuButton<String?>(
       initialValue: selectedCategory,
-      tooltip: 'বিষয় / বিভাগ ফিল্টার',
+      tooltip: t.filterCategory,
       elevation: 6,
       offset: const Offset(0, 52),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -529,6 +524,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
         ref.read(assetCategoryFilterProvider.notifier).state = cat;
       },
       itemBuilder: (ctx) => _buildCategoryMenuItems(
+        t: t,
         categories: categories,
         selectedCategory: selectedCategory,
         isLoading: isLoading,
@@ -554,7 +550,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
             ),
             const SizedBox(width: 6),
             Text(
-              'বিভাগ',
+              t.filterCategory,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -574,6 +570,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
   }
 
   List<PopupMenuEntry<String?>> _buildCategoryMenuItems({
+    required AppTranslations t,
     required List<String> categories,
     required String? selectedCategory,
     required bool isLoading,
@@ -581,7 +578,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
   }) {
     if (isLoading) {
       return [
-        const PopupMenuItem<String?>(
+        PopupMenuItem<String?>(
           enabled: false,
           child: Row(
             children: [
@@ -591,7 +588,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               SizedBox(width: 10),
-              Text('বিভাগ লোড হচ্ছে...'),
+              Text(t.loadingCategories),
             ],
           ),
         ),
@@ -611,8 +608,8 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
               color: selectedCategory == null ? colorScheme.primary : null,
             ),
             const SizedBox(width: 10),
-            const Text(
-              'সব বিভাগ',
+            Text(
+              t.allCategories,
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -623,14 +620,14 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
 
     if (categories.isEmpty) {
       items.add(
-        const PopupMenuItem<String?>(
+        PopupMenuItem<String?>(
           enabled: false,
           child: Row(
             children: [
               Icon(Icons.info_outline, size: 18, color: Colors.grey),
               SizedBox(width: 10),
               Text(
-                'কোনো বিভাগ পাওয়া যায়নি',
+                t.noCategoriesFound,
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
             ],
@@ -655,7 +652,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    cat,
+                    t.translateCategory(cat),
                     style: TextStyle(
                       fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                       color: isSel ? colorScheme.primary : null,
@@ -679,6 +676,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
 
   Widget _buildPrintButton(
     BuildContext context, {
+    required AppTranslations t,
     required List<Asset> assets,
     required ColorScheme colorScheme,
   }) {
@@ -687,7 +685,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
       onTap: () async {
         if (assets.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('প্রিন্ট করার মতো কোনো মালামাল নেই')),
+            SnackBar(content: Text(t.noAssetsToPrint)),
           );
           return;
         }
@@ -719,6 +717,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
   Widget _buildSummaryBanner(
     BuildContext context,
     WidgetRef ref, {
+    required AppTranslations t,
     required Map<String, int> summary,
     required AssetCondition? selectedCondition,
   }) {
@@ -742,9 +741,10 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
           children: [
             Expanded(
               child: _buildMetricItem(
-                label: 'মোট মালামাল',
+                t: t,
+                label: t.totalAssets,
                 count: totalQty,
-                subLabel: '${_toBn(totalItems)} পদ',
+                subLabel: '${t.formatNumber(totalItems)} ${t.itemsCountUnit}',
                 color: const Color(0xFF0284C7),
                 icon: Icons.inventory_2_outlined,
                 isSelected: selectedCondition == null,
@@ -760,9 +760,10 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
             ),
             Expanded(
               child: _buildMetricItem(
-                label: 'ভালো',
+                t: t,
+                label: t.conditionGood,
                 count: goodQty,
-                subLabel: 'ব্যবহারযোগ্য',
+                subLabel: t.conditionGoodSub,
                 color: const Color(0xFF059669),
                 icon: Icons.check_circle_outline,
                 isSelected: selectedCondition == AssetCondition.good,
@@ -781,9 +782,10 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
             ),
             Expanded(
               child: _buildMetricItem(
-                label: 'মেরামত',
+                t: t,
+                label: t.conditionRepair,
                 count: repairQty,
-                subLabel: 'রক্ষণাবেক্ষণ',
+                subLabel: t.conditionRepairSub,
                 color: const Color(0xFFD97706),
                 icon: Icons.build_outlined,
                 isSelected: selectedCondition == AssetCondition.repairNeeded,
@@ -802,9 +804,10 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
             ),
             Expanded(
               child: _buildMetricItem(
-                label: 'নষ্ট/বাতিল',
+                t: t,
+                label: t.conditionDamaged,
                 count: damagedQty,
-                subLabel: 'অনুপযোগী',
+                subLabel: t.conditionDamagedSub,
                 color: const Color(0xFFDC2626),
                 icon: Icons.error_outline,
                 isSelected: selectedCondition == AssetCondition.damaged,
@@ -823,6 +826,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
   }
 
   Widget _buildMetricItem({
+    required AppTranslations t,
     required String label,
     required int count,
     required String subLabel,
@@ -865,7 +869,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
             ),
             const SizedBox(height: 3),
             Text(
-              '${_toBn(count)} টি',
+              '${t.formatNumber(count)} ${t.piecesUnit}',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -935,7 +939,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
   // Asset Tile
   // ---------------------------------------------------------------------------
 
-  Widget _buildAssetTile(BuildContext context, WidgetRef ref, Asset asset) {
+  Widget _buildAssetTile(BuildContext context, WidgetRef ref, AppTranslations t, Asset asset) {
     final colorScheme = Theme.of(context).colorScheme;
 
     IconData getCategoryIcon(String cat) {
@@ -1050,7 +1054,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  asset.condition.label,
+                                  asset.condition.getLocalizedLabel(t),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -1078,8 +1082,8 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                               child: Text(
                                 asset.donorOrSource != null &&
                                         asset.donorOrSource!.isNotEmpty
-                                    ? 'ওয়াকফ (${asset.donorOrSource})'
-                                    : 'ওয়াকফকৃত',
+                                    ? '${t.waqfLabel} (${asset.donorOrSource})'
+                                    : t.waqfDonated,
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -1108,7 +1112,7 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '${_toBn(asset.quantity)} ${asset.unit}',
+                        '${t.formatNumber(asset.quantity)} ${t.translateUnit(asset.unit)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,

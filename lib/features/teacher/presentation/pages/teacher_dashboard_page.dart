@@ -63,7 +63,7 @@ class _TeacherDashboardPageState extends ConsumerState<TeacherDashboardPage> {
         ? [
             t.bookList,
             t.myShelf,
-            'মালামাল ও সরঞ্জাম',
+            t.assetsAndEquipment,
             t.classRoutine,
             t.personalNotes,
             t.settings,
@@ -99,7 +99,7 @@ class _TeacherDashboardPageState extends ConsumerState<TeacherDashboardPage> {
             CurvedNavItem(
               icon: Icons.inventory_2_outlined,
               activeIcon: Icons.inventory_2,
-              label: 'মালামাল',
+              label: t.assetsNav,
               gradientColors: const [
                 Color(0xFF06B6D4),
                 Color(0xFF0891B2)

@@ -1,3 +1,4 @@
+library;
 /// ---------------------------------------------------------------------------
 /// asset_detail_page.dart
 /// ---------------------------------------------------------------------------
@@ -6,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 
 import '../../../../core/models/asset_model.dart';
 import '../../../../core/providers/asset_providers.dart';
@@ -55,23 +57,21 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
     ref.invalidate(assetSummaryCountsProvider);
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> _confirmDelete(AppTranslations t) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('মালামাল মুছে ফেলা'),
-        content: Text(
-          'আপনি কি নিশ্চিত যে "${_asset.name}" মালামালটি তালিকা থেকে স্থায়ীভাবে মুছে ফেলতে চান?',
-        ),
+        title: Text(t.deleteAssetConfirmTitle),
+        content: Text('${t.deleteAssetConfirmMsg}\n("${_asset.name}")'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('বাতিল'),
+            child: Text(t.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('মুছে ফেলুন'),
+            child: Text(t.delete),
           ),
         ],
       ),
@@ -85,8 +85,8 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('মালামাল সফলভাবে মুছে ফেলা হয়েছে'),
+          SnackBar(
+            content: Text(t.deleteAssetSuccess),
             backgroundColor: Colors.red,
           ),
         );
@@ -98,18 +98,19 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final t = ref.watch(translationProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'মালামালের বিবরণ',
+        title: Text(
+          t.assetDetails,
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           if (widget.isAdmin) ...[
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              tooltip: 'এডিট করুন',
+              tooltip: t.edit,
               onPressed: () async {
                 final result = await Navigator.push(
                   context,
@@ -126,8 +127,8 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
-              tooltip: 'মুছে ফেলুন',
-              onPressed: _confirmDelete,
+              tooltip: t.delete,
+              onPressed: () => _confirmDelete(t),
             ),
           ],
         ],
@@ -165,7 +166,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '${_asset.quantity} ${_asset.unit}',
+                          '${t.formatNumber(_asset.quantity)} ${t.translateUnit(_asset.unit)}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -200,7 +201,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                                 size: 14, color: _asset.condition.color),
                             const SizedBox(width: 6),
                             Text(
-                              _asset.condition.label,
+                              _asset.condition.getLocalizedLabel(t),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -229,7 +230,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                           ),
                         ),
                         child: Text(
-                          _asset.acquisitionType.label,
+                          _asset.acquisitionType.getLocalizedLabel(t),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -252,27 +253,27 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'বর্তমান অবস্থা পরিবর্তন করুন:',
+                    Text(
+                      t.changeCurrentCondition,
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         _buildStatusButton(
-                          label: 'ভালো',
+                          label: t.conditionGood,
                           condition: AssetCondition.good,
                           color: Colors.green,
                         ),
                         const SizedBox(width: 8),
                         _buildStatusButton(
-                          label: 'মেরামত',
+                          label: t.conditionRepair,
                           condition: AssetCondition.repairNeeded,
                           color: Colors.amber.shade800,
                         ),
                         const SizedBox(width: 8),
                         _buildStatusButton(
-                          label: 'নষ্ট',
+                          label: t.conditionDamaged,
                           condition: AssetCondition.damaged,
                           color: Colors.red,
                         ),
@@ -289,8 +290,8 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'মালামালের বিবরণ ও তথ্য',
+                  Text(
+                    t.assetInfoAndSpecs,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -299,45 +300,42 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                   const Divider(height: 24),
                   _buildDetailRow(
                     icon: Icons.category_outlined,
-                    label: 'বিভাগ / ক্যাটাগরি',
-                    value: _asset.category,
+                    label: t.categoryLabel,
+                    value: t.translateCategory(_asset.category),
                   ),
                   _buildDetailRow(
                     icon: Icons.location_on_outlined,
-                    label: 'অবস্থান (কোথায় আছে)',
+                    label: t.locationLabel,
                     value: _asset.location,
                   ),
                   _buildDetailRow(
                     icon: Icons.numbers_outlined,
-                    label: 'মালামাল আইডি (Code)',
+                    label: t.assetIdLabel,
                     value: _asset.assetId,
                   ),
                   if (_asset.donorOrSource != null &&
                       _asset.donorOrSource!.isNotEmpty)
                     _buildDetailRow(
                       icon: Icons.person_outline,
-                      label: _asset.acquisitionType == AcquisitionType.waqf
-                          ? 'দাতার নাম (ওয়াকফকারী)'
-                          : 'ক্রয়ের উৎস / দোকান',
+                      label: _asset.acquisitionType == AcquisitionType.waqf ? t.donorNameLabel : t.sourceStoreLabel,
                       value: _asset.donorOrSource!,
                     ),
                   if (_asset.cost != null)
                     _buildDetailRow(
                       icon: Icons.payments_outlined,
-                      label: 'আনুমানিক মূল্য / খরচ',
-                      value: '${_asset.cost!.toStringAsFixed(0)} ৳',
+                      label: t.costLabel,
+                      value: '${t.formatNumber(_asset.cost!.toStringAsFixed(0))} ৳',
                     ),
                   if (_asset.purchaseDate != null)
                     _buildDetailRow(
                       icon: Icons.calendar_today_outlined,
-                      label: 'সংগ্রহের তারিখ',
-                      value:
-                          '${_asset.purchaseDate!.day}/${_asset.purchaseDate!.month}/${_asset.purchaseDate!.year}',
+                      label: t.acquisitionDateLabel,
+                      value: '${t.formatNumber(_asset.purchaseDate!.day)}/${t.formatNumber(_asset.purchaseDate!.month)}/${t.formatNumber(_asset.purchaseDate!.year)}',
                     ),
                   if (_asset.remarks != null && _asset.remarks!.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    const Text(
-                      'মন্তব্য / বিবরণ:',
+                    Text(
+                      t.remarksDetailLabel,
                       style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                     ),
                     const SizedBox(height: 4),
@@ -398,7 +396,6 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
     required String value,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 14.0),
       child: Row(

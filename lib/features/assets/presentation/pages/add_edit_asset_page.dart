@@ -1,3 +1,4 @@
+library;
 /// ---------------------------------------------------------------------------
 /// add_edit_asset_page.dart
 /// ---------------------------------------------------------------------------
@@ -6,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 
 import '../../../../core/models/asset_model.dart';
 import '../../../../core/providers/asset_providers.dart';
@@ -71,7 +73,7 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
     super.dispose();
   }
 
-  Future<void> _saveAsset() async {
+  Future<void> _saveAsset(AppTranslations t) async {
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
@@ -111,9 +113,7 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEdit
-                ? 'মালামালের তথ্য সফলভাবে আপডেট হয়েছে'
-                : 'নতুন মালামাল সফলভাবে যুক্ত হয়েছে'),
+            content: Text(isEdit ? t.updateAssetSuccess : t.saveAssetSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -122,7 +122,7 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ত্রুটি: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${t.error}: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -130,10 +130,11 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ref.watch(translationProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          isEdit ? 'মালামাল এডিট করুন' : 'নতুন মালামাল যোগ করুন',
+          isEdit ? t.editAsset : t.addNewAsset,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -147,15 +148,15 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
               // 1. Asset Name
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'মালামালের নাম *',
-                  hintText: 'যেমন: বড় কাঠের বুকশেলফ, অফিস চেয়ার, প্রিন্টার',
+                decoration: InputDecoration(
+                  labelText: t.assetNameLabel,
+                  hintText: t.assetNameHint,
                   prefixIcon: Icon(Icons.inventory_2_outlined),
                   border: OutlineInputBorder(),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'দয়া করে মালামালের নাম লিখুন';
+                    return t.assetNameRequired;
                   }
                   return null;
                 },
@@ -165,15 +166,15 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
               // 2. Category Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'বিভাগ / ক্যাটাগরি *',
+                decoration: InputDecoration(
+                  labelText: t.categoryLabel,
                   prefixIcon: Icon(Icons.category_outlined),
                   border: OutlineInputBorder(),
                 ),
                 items: Asset.defaultCategories
                     .map((cat) => DropdownMenuItem(
                           value: cat,
-                          child: Text(cat),
+                          child: Text(t.translateCategory(cat)),
                         ))
                     .toList(),
                 onChanged: (val) {
@@ -191,19 +192,19 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
                     flex: 2,
                     child: TextFormField(
                       controller: _quantityController,
-                      decoration: const InputDecoration(
-                        labelText: 'পরিমাণ *',
+                      decoration: InputDecoration(
+                        labelText: t.quantityLabel,
                         prefixIcon: Icon(Icons.pin_outlined),
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
-                          return 'পরিমাণ দিন';
+                          return t.quantityRequired;
                         }
                         final parsed = int.tryParse(val.trim());
                         if (parsed == null || parsed < 0) {
-                          return 'সঠিক সংখ্যা দিন';
+                          return t.invalidNumber;
                         }
                         return null;
                       },
@@ -216,14 +217,14 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
                       value: Asset.defaultUnits.contains(_unitController.text)
                           ? _unitController.text
                           : 'টি',
-                      decoration: const InputDecoration(
-                        labelText: 'একক',
+                      decoration: InputDecoration(
+                        labelText: t.unitLabel,
                         border: OutlineInputBorder(),
                       ),
                       items: Asset.defaultUnits
                           .map((u) => DropdownMenuItem(
                                 value: u,
-                                child: Text(u),
+                                child: Text(t.translateUnit(u)),
                               ))
                           .toList(),
                       onChanged: (val) {
@@ -240,15 +241,15 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
               // 4. Location
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'কোথায় রাখা আছে (অবস্থান) *',
-                  hintText: 'যেমন: মাকতাবা রুম-১, উত্তর দেয়াল, বুকশেলফ-৩',
+                decoration: InputDecoration(
+                  labelText: t.locationFieldLabel,
+                  hintText: t.locationFieldHint,
                   prefixIcon: Icon(Icons.location_on_outlined),
                   border: OutlineInputBorder(),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'দয়া করে মালামালের অবস্থান উল্লেখ করুন';
+                    return t.locationRequired;
                   }
                   return null;
                 },
@@ -256,26 +257,26 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
               const SizedBox(height: 20),
 
               // 5. Condition Segment
-              const Text(
-                'বর্তমান অবস্থা:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              Text(
+                t.currentConditionLabel,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               SegmentedButton<AssetCondition>(
                 segments: [
                   ButtonSegment(
                     value: AssetCondition.good,
-                    label: const Text('ভালো'),
+                    label: Text(t.conditionGood),
                     icon: const Icon(Icons.check_circle_outline),
                   ),
                   ButtonSegment(
                     value: AssetCondition.repairNeeded,
-                    label: const Text('মেরামত প্রয়োজন'),
+                    label: Text(t.repairNeededLabel),
                     icon: const Icon(Icons.build_circle_outlined),
                   ),
                   ButtonSegment(
                     value: AssetCondition.damaged,
-                    label: const Text('নষ্ট / বাতিল'),
+                    label: Text(t.damagedOrDisposedLabel),
                     icon: const Icon(Icons.cancel_outlined),
                   ),
                 ],
@@ -287,21 +288,21 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
               const SizedBox(height: 20),
 
               // 6. Acquisition Type
-              const Text(
-                'সংগ্রহের ধরন:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              Text(
+                t.acquisitionTypeLabel,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               SegmentedButton<AcquisitionType>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: AcquisitionType.purchased,
-                    label: Text('ক্রয়কৃত'),
+                    label: Text(t.purchasedLabel),
                     icon: Icon(Icons.shopping_bag_outlined),
                   ),
                   ButtonSegment(
                     value: AcquisitionType.waqf,
-                    label: Text('ওয়াকফ / দানকৃত'),
+                    label: Text(t.waqfDonated),
                     icon: Icon(Icons.volunteer_activism_outlined),
                   ),
                 ],
@@ -317,11 +318,11 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
                 controller: _donorOrSourceController,
                 decoration: InputDecoration(
                   labelText: _selectedAcquisitionType == AcquisitionType.waqf
-                      ? 'দাতার নাম / উৎস'
-                      : 'ক্রয়ের উৎস / দোকানের নাম',
+                      ? t.donorOrSourceWaqfLabel
+                      : t.donorOrSourcePurchaseLabel,
                   hintText: _selectedAcquisitionType == AcquisitionType.waqf
-                      ? 'যেমন: আলহাজ্ব মাওলানা আব্দুর রহমান সাহেব'
-                      : 'যেমন: স্টেডিয়াম মার্কেট, ঢাকা',
+                      ? t.donorOrSourceWaqfHint
+                      : t.donorOrSourcePurchaseHint,
                   prefixIcon: const Icon(Icons.person_outline),
                   border: const OutlineInputBorder(),
                 ),
@@ -331,8 +332,8 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
               // 8. Cost (Optional)
               TextFormField(
                 controller: _costController,
-                decoration: const InputDecoration(
-                  labelText: 'আনুমানিক মূল্য / খরচ (টাকা - ঐচ্ছিক)',
+                decoration: InputDecoration(
+                  labelText: t.costFieldLabel,
                   prefixIcon: Icon(Icons.attach_money),
                   border: OutlineInputBorder(),
                 ),
@@ -343,9 +344,9 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
               // 9. Remarks
               TextFormField(
                 controller: _remarksController,
-                decoration: const InputDecoration(
-                  labelText: 'মন্তব্য / অতিরিক্ত বিবরণ (ঐচ্ছিক)',
-                  hintText: 'মালামাল সংক্রান্ত কোনো বিশেষ দ্রষ্টব্য থাকলে লিখুন...',
+                decoration: InputDecoration(
+                  labelText: t.remarksFieldLabel,
+                  hintText: t.remarksFieldHint,
                   prefixIcon: Icon(Icons.notes_outlined),
                   border: OutlineInputBorder(),
                 ),
@@ -355,7 +356,7 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
 
               // Save Button
               FilledButton.icon(
-                onPressed: _saveAsset,
+                onPressed: () => _saveAsset(t),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -364,7 +365,7 @@ class _AddEditAssetPageState extends ConsumerState<AddEditAssetPage> {
                 ),
                 icon: const Icon(Icons.save),
                 label: Text(
-                  isEdit ? 'আপডেট সংরক্ষণ করুন' : 'মালামাল যুক্ত করুন',
+                  isEdit ? t.updateAssetBtn : t.saveAssetBtn,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),

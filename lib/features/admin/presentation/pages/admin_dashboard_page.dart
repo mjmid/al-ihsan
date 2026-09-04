@@ -125,7 +125,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           ? t.inactiveMembersList
           : t.membersList,
       t.transactionList,
-      'মালামাল ও সরঞ্জাম',
+      t.assetsAndEquipment,
       t.settings,
     ];
 
@@ -246,7 +246,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           CurvedNavItem(
             icon: Icons.inventory_2_outlined,
             activeIcon: Icons.inventory_2,
-            label: 'মালামাল',
+            label: t.assetsNav,
             gradientColors: const [
               Color(0xFF06B6D4), // Cyan
               Color(0xFF0891B2),

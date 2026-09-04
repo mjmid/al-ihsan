@@ -1,3 +1,4 @@
+library;
 /// ---------------------------------------------------------------------------
 /// asset_model.dart
 /// ---------------------------------------------------------------------------
@@ -19,6 +20,21 @@ enum AssetCondition {
         return 'মেরামত প্রয়োজন';
       case AssetCondition.damaged:
         return 'নষ্ট / বাতিল';
+    }
+  }
+
+  String getLocalizedLabel(dynamic t) {
+    try {
+      switch (this) {
+        case AssetCondition.good:
+          return t.conditionGood as String;
+        case AssetCondition.repairNeeded:
+          return t.repairNeededLabel as String;
+        case AssetCondition.damaged:
+          return t.damagedOrDisposedLabel as String;
+      }
+    } catch (_) {
+      return label;
     }
   }
 
@@ -67,6 +83,19 @@ enum AcquisitionType {
         return 'ক্রয়কৃত';
       case AcquisitionType.waqf:
         return 'ওয়াকফ / দানকৃত';
+    }
+  }
+
+  String getLocalizedLabel(dynamic t) {
+    try {
+      switch (this) {
+        case AcquisitionType.purchased:
+          return t.purchasedLabel as String;
+        case AcquisitionType.waqf:
+          return t.waqfDonated as String;
+      }
+    } catch (_) {
+      return label;
     }
   }
 

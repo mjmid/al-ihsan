@@ -334,6 +334,149 @@ class AppTranslations {
   String get booksFound => _get({'bn': 'টি কিতাব পাওয়া গেছে', 'en': 'books found', 'ar': 'كتب موجودة', 'ur': 'کتب دستیاب ہیں'});
   String get searchInFilter => _get({'bn': 'খুঁজুন...', 'en': 'Search...', 'ar': 'بحث...', 'ur': 'تلاش کریں...'});
 
+  // ── Numbers & Digits Formatter ──────────────────────────────────────────
+  String formatNumber(dynamic n) {
+    final s = n.toString();
+    if (locale == 'bn') {
+      const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      return s.split('').map((c) {
+        final idx = int.tryParse(c);
+        return idx != null ? bn[idx] : c;
+      }).join('');
+    } else if (locale == 'ar') {
+      const ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+      return s.split('').map((c) {
+        final idx = int.tryParse(c);
+        return idx != null ? ar[idx] : c;
+      }).join('');
+    } else if (locale == 'ur') {
+      const ur = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+      return s.split('').map((c) {
+        final idx = int.tryParse(c);
+        return idx != null ? ur[idx] : c;
+      }).join('');
+    }
+    return s;
+  }
+
+  // ── Assets & Equipment ──────────────────────────────────────────────────
+  String get assetsNav => _get({'bn': 'মালামাল', 'en': 'Assets', 'ar': 'المقتنيات', 'ur': 'سامان'});
+  String get assetsAndEquipment => _get({'bn': 'মালামাল ও সরঞ্জাম', 'en': 'Assets & Equipment', 'ar': 'المقتنيات والتجهيزات', 'ur': 'سامان اور سازوسامان'});
+  String get assetDetails => _get({'bn': 'মালামালের বিবরণ', 'en': 'Asset Details', 'ar': 'تفاصيل المقتنى', 'ur': 'سامان کی تفصیلات'});
+  String get addNewAsset => _get({'bn': 'নতুন মালামাল যোগ করুন', 'en': 'Add New Asset', 'ar': 'إضافة مقتنى جديد', 'ur': 'نیا سامان شامل کریں'});
+  String get editAsset => _get({'bn': 'মালামাল এডিট করুন', 'en': 'Edit Asset', 'ar': 'تعديل المقتنى', 'ur': 'سامان میں ترمیم کریں'});
+
+  String get searchAssetsHint => _get({'bn': 'মালামাল, অবস্থান বা দাতা খুঁজুন...', 'en': 'Search assets, location or donor...', 'ar': 'البحث في المقتنيات أو الموقع أو الواهب...', 'ur': 'سامان، مقام یا عطیہ دہندہ تلاش کریں...'});
+  String get filterCategory => _get({'bn': 'বিভাগ', 'en': 'Category', 'ar': 'القسم', 'ur': 'شعبہ'});
+  String get changeCategory => _get({'bn': 'বিভাগ পরিবর্তন করুন', 'en': 'Change Category', 'ar': 'تغيير القسم', 'ur': 'شعبہ تبدیل کریں'});
+  String get allCategories => _get({'bn': 'সব বিভাগ', 'en': 'All Categories', 'ar': 'جميع الأقسام', 'ur': 'تمام شعبہ جات'});
+  String get loadingCategories => _get({'bn': 'বিভাগ লোড হচ্ছে...', 'en': 'Loading categories...', 'ar': 'جارٍ تحميل الأقسام...', 'ur': 'شعبہ جات لوڈ ہو رہے ہیں...'});
+  String get noCategoriesFound => _get({'bn': 'কোনো বিভাগ পাওয়া যায়নি', 'en': 'No categories found', 'ar': 'لم يتم العثور على أقسام', 'ur': 'کوئی شعبہ نہیں ملا'});
+  String get activeFiltersLabel => _get({'bn': 'সক্রিয় ফিল্টার:', 'en': 'Active Filters:', 'ar': 'التصفيات النشطة:', 'ur': 'فعال فلٹرز:'});
+  String get clearAll => _get({'bn': 'সব মুছুন', 'en': 'Clear All', 'ar': 'مسح الكل', 'ur': 'سب صاف کریں'});
+  String get resetFilters => _get({'bn': 'ফিল্টার রিসেট করুন', 'en': 'Reset Filters', 'ar': 'إعادة ضبط التصفيات', 'ur': 'فلٹرز دوبارہ ترتیب دیں'});
+  String get noAssetsToPrint => _get({'bn': 'প্রিন্ট করার মতো কোনো মালামাল নেই', 'en': 'No assets to print', 'ar': 'لا توجد مقتنيات للطباعة', 'ur': 'پرنٹ کرنے کے لیے کوئی سامان نہیں'});
+
+  String get edit => _get({'bn': 'এডিট করুন', 'en': 'Edit', 'ar': 'تعديل', 'ur': 'ترمیم کریں'});
+  String get categoryLabel => _get({'bn': 'বিভাগ / ক্যাটাগরি', 'en': 'Category', 'ar': 'القسم / الفئة', 'ur': 'شعبہ / زمرہ'});
+  String get piecesUnit => _get({'bn': 'টি', 'en': 'pcs', 'ar': 'قطعة', 'ur': 'عدد'});
+  String get totalAssets => _get({'bn': 'মোট মালামাল', 'en': 'Total Assets', 'ar': 'إجمالي المقتنيات', 'ur': 'کل سامان'});
+  String get itemsCountUnit => _get({'bn': 'পদ', 'en': 'items', 'ar': 'بند', 'ur': 'اقسام'});
+  String get conditionGood => _get({'bn': 'ভালো', 'en': 'Good', 'ar': 'جيد', 'ur': 'اچھا'});
+  String get conditionGoodSub => _get({'bn': 'ব্যবহারযোগ্য', 'en': 'Usable', 'ar': 'صالح للاستخدام', 'ur': 'قابل استعمال'});
+  String get conditionRepair => _get({'bn': 'মেরামত', 'en': 'Repair', 'ar': 'إصلاح', 'ur': 'مرمت'});
+  String get conditionRepairSub => _get({'bn': 'রক্ষণাবেক্ষণ', 'en': 'Maintenance', 'ar': 'صيانة', 'ur': 'دیکھ بھال'});
+  String get conditionDamaged => _get({'bn': 'নষ্ট/বাতিল', 'en': 'Damaged', 'ar': 'تالف', 'ur': 'خراب/متروک'});
+  String get conditionDamagedSub => _get({'bn': 'অনুপযোগী', 'en': 'Unusable', 'ar': 'غير صالح', 'ur': 'ناقابل استعمال'});
+
+  String get noAssetsMatched => _get({'bn': 'কোনো মালামাল মেলেনি', 'en': 'No assets matched', 'ar': 'لم يتم العثور على مقتنيات مطابقة', 'ur': 'کوئی مماثل سامان نہیں ملا'});
+  String get noAssetsEntered => _get({'bn': 'কোনো মালামাল এন্ট্রি করা হয়নি', 'en': 'No assets recorded yet', 'ar': 'لم يتم تسجيل أي مقتنيات بعد', 'ur': 'ابھی تک کوئی سامان درج نہیں کیا گیا'});
+  String get changeSearchFilterHint => _get({'bn': 'অনুসন্ধান বা ফিল্টারের শর্ত পরিবর্তন করে চেষ্টা করুন', 'en': 'Try adjusting your search or filters', 'ar': 'جرب تغيير شروط البحث أو التصفية', 'ur': 'تلاش یا فلٹر کی شرائط بدل کر کوشش کریں'});
+  String get assetEmptyPrompt => _get({'bn': 'মাকতাবার আসবাবপত্র, আলমারি, বুকশেলফ বা ইলেকট্রনিক্স সরঞ্জাম সংরক্ষণ করুন', 'en': 'Keep track of furniture, bookshelves, electronics, and supplies', 'ar': 'سجل أثاث المكتبة والرفوف والإلكترونيات والتجهيزات', 'ur': 'مکتبہ کا فرنیچر، الماریاں، بک شیلف اور الیکٹرانکس محفوظ کریں'});
+
+  String get assetInfoAndSpecs => _get({'bn': 'মালামালের বিবরণ ও তথ্য', 'en': 'Asset Specifications & Details', 'ar': 'مواصفات وبيانات المقتنى', 'ur': 'سامان کی تفصیلات اور معلومات'});
+  String get locationLabel => _get({'bn': 'অবস্থান (কোথায় আছে)', 'en': 'Location (Where kept)', 'ar': 'الموقع (مكان التواجد)', 'ur': 'مقام (کہاں رکھا ہے)'});
+  String get assetIdLabel => _get({'bn': 'মালামাল আইডি (Code)', 'en': 'Asset ID (Code)', 'ar': 'معرف المقتنى (الكود)', 'ur': 'سامان کا شناختی کوڈ'});
+  String get donorNameLabel => _get({'bn': 'দাতার নাম (ওয়াকফকারী)', 'en': 'Donor Name (Waqf)', 'ar': 'اسم الواهب (الواقف)', 'ur': 'عطیہ دہندہ کا نام (واقف)'});
+  String get sourceStoreLabel => _get({'bn': 'ক্রয়ের উৎস / দোকান', 'en': 'Purchase Source / Store', 'ar': 'مصدر الشراء / المتجر', 'ur': 'خریداری کا ذریعہ / دکان'});
+  String get costLabel => _get({'bn': 'আনুমানিক মূল্য / খরচ', 'en': 'Estimated Cost / Value', 'ar': 'القيمة التقديرية / التكلفة', 'ur': 'تخمینی قیمت / خرچ'});
+  String get acquisitionDateLabel => _get({'bn': 'সংগ্রহের তারিখ', 'en': 'Acquisition Date', 'ar': 'تاريخ الاقتناء', 'ur': 'حصول کی تاریخ'});
+  String get remarksDetailLabel => _get({'bn': 'মন্তব্য / বিবরণ:', 'en': 'Remarks / Details:', 'ar': 'ملاحظات / تفاصيل:', 'ur': 'تبصرے / تفصیلات:'});
+  String get changeCurrentCondition => _get({'bn': 'বর্তমান অবস্থা পরিবর্তন করুন:', 'en': 'Change Current Condition:', 'ar': 'تغيير الحالة الحالية:', 'ur': 'موجودہ حالت تبدیل کریں:'});
+  String get deleteAssetConfirmTitle => _get({'bn': 'মালামাল মুছে ফেলা', 'en': 'Delete Asset', 'ar': 'حذف المقتنى', 'ur': 'سامان حذف کریں'});
+  String get deleteAssetConfirmMsg => _get({'bn': 'আপনি কি নিশ্চিত যে এই মালামালটি তালিকা থেকে স্থায়ীভাবে মুছে ফেলতে চান?', 'en': 'Are you sure you want to permanently delete this asset?', 'ar': 'هل أنت متأكد من رغبتك في حذف هذا المقتنى نهائياً؟', 'ur': 'کیا آپ واقعی اس سامان کو مستقل طور پر حذف کرنا چاہتے ہیں؟'});
+  String get deleteAssetSuccess => _get({'bn': 'মালামাল সফলভাবে মুছে ফেলা হয়েছে', 'en': 'Asset deleted successfully', 'ar': 'تم حذف المقتنى بنجاح', 'ur': 'سامان کامیابی سے حذف کر دیا گیا'});
+  String get waqfLabel => _get({'bn': 'ওয়াকফ', 'en': 'Waqf', 'ar': 'وقف', 'ur': 'وقف'});
+  String get waqfDonated => _get({'bn': 'ওয়াকফকৃত', 'en': 'Waqf Donated', 'ar': 'موقوف', 'ur': 'وقف شدہ'});
+  String get purchasedLabel => _get({'bn': 'ক্রয়কৃত', 'en': 'Purchased', 'ar': 'مشترى', 'ur': 'خریدا گیا'});
+
+  String get assetNameLabel => _get({'bn': 'মালামালের নাম *', 'en': 'Asset Name *', 'ar': 'اسم المقتنى *', 'ur': 'سامان کا نام *'});
+  String get assetNameHint => _get({'bn': 'যেমন: বড় কাঠের বুকশেলফ, অফিস চেয়ার, প্রিন্টার', 'en': 'e.g., Wooden Bookshelf, Office Chair, Printer', 'ar': 'مثال: رف كتب خشبي، كرسي مكتب، طابعة', 'ur': 'مثلاً: لکڑی کا بک شیلف، دفتری کرسی، پرنٹر'});
+  String get assetNameRequired => _get({'bn': 'দয়া করে মালামালের নাম লিখুন', 'en': 'Please enter asset name', 'ar': 'يرجى إدخال اسم المقتنى', 'ur': 'براہ کرم سامان کا نام درج کریں'});
+  String get quantityLabel => _get({'bn': 'পরিমাণ *', 'en': 'Quantity *', 'ar': 'الكمية *', 'ur': 'تعداد *'});
+  String get quantityRequired => _get({'bn': 'পরিমাণ দিন', 'en': 'Enter quantity', 'ar': 'أدخل الكمية', 'ur': 'تعداد درج کریں'});
+  String get invalidNumber => _get({'bn': 'সঠিক সংখ্যা দিন', 'en': 'Enter a valid number', 'ar': 'أدخل رقماً صحيحاً', 'ur': 'درست عدد درج کریں'});
+  String get unitLabel => _get({'bn': 'একক', 'en': 'Unit', 'ar': 'الوحدة', 'ur': 'اکائی'});
+  String get locationFieldLabel => _get({'bn': 'কোথায় রাখা আছে (অবস্থান) *', 'en': 'Location (Where kept) *', 'ar': 'مكان التواجد *', 'ur': 'کہاں رکھا ہے (مقام) *'});
+  String get locationFieldHint => _get({'bn': 'যেমন: মাকতাবা রুম-১, উত্তর দেয়াল, বুকশেলফ-৩', 'en': 'e.g., Room 1, North Wall, Shelf 3', 'ar': 'مثال: غرفة 1، الجدار الشمالي، الرف 3', 'ur': 'مثلاً: کمرہ 1، شمالی دیوار، بک شیلف 3'});
+  String get locationRequired => _get({'bn': 'দয়া করে মালামালের অবস্থান উল্লেখ করুন', 'en': 'Please specify location', 'ar': 'يرجى تحديد مكان التواجد', 'ur': 'براہ کرم سامان کا مقام درج کریں'});
+  String get currentConditionLabel => _get({'bn': 'বর্তমান অবস্থা:', 'en': 'Current Condition:', 'ar': 'الحالة الحالية:', 'ur': 'موجودہ حالت:'});
+  String get repairNeededLabel => _get({'bn': 'মেরামত প্রয়োজন', 'en': 'Repair Needed', 'ar': 'يحتاج إلى إصلاح', 'ur': 'مرمت کی ضرورت ہے'});
+  String get damagedOrDisposedLabel => _get({'bn': 'নষ্ট / বাতিল', 'en': 'Damaged / Disposed', 'ar': 'تالف / ملغى', 'ur': 'خراب / متروک'});
+  String get acquisitionTypeLabel => _get({'bn': 'সংগ্রহের ধরন:', 'en': 'Acquisition Type:', 'ar': 'نوع الاقتناء:', 'ur': 'حصول کی قسم:'});
+  String get donorOrSourceWaqfLabel => _get({'bn': 'দাতার নাম / উৎস', 'en': 'Donor Name / Source', 'ar': 'اسم الواهب / المصدر', 'ur': 'عطیہ دہندہ / ذریعہ'});
+  String get donorOrSourcePurchaseLabel => _get({'bn': 'ক্রয়ের উৎস / দোকানের নাম', 'en': 'Purchase Source / Store Name', 'ar': 'مصدر الشراء / اسم المتجر', 'ur': 'خریداری کا ذریعہ / دکان کا نام'});
+  String get donorOrSourceWaqfHint => _get({'bn': 'যেমন: আলহাজ্ব মাওলানা আব্দুর রহমান সাহেব', 'en': 'e.g., Alhaj Maulana Abdur Rahman', 'ar': 'مثال: الحاج مولانا عبد الرحمن', 'ur': 'مثلاً: الحاج مولانا عبد الرحمن صاحب'});
+  String get donorOrSourcePurchaseHint => _get({'bn': 'যেমন: স্টেডিয়াম মার্কেট, ঢাকা', 'en': 'e.g., Stadium Market, Dhaka', 'ar': 'مثال: سوق الاستاد، دكا', 'ur': 'مثلاً: اسٹیڈیم مارکیٹ، ڈھاکہ'});
+  String get costFieldLabel => _get({'bn': 'আনুমানিক মূল্য / খরচ (ঐচ্ছিক)', 'en': 'Estimated Cost / Value (Optional)', 'ar': 'التكلفة التقديرية / القيمة (اختياري)', 'ur': 'تخمینی قیمت / خرچ (اختیاری)'});
+  String get remarksFieldLabel => _get({'bn': 'মন্তব্য / অতিরিক্ত বিবরণ (ঐচ্ছিক)', 'en': 'Remarks / Additional Details (Optional)', 'ar': 'ملاحظات / تفاصيل إضافية (اختياري)', 'ur': 'تبصرے / اضافی تفصیلات (اختیاری)'});
+  String get remarksFieldHint => _get({'bn': 'মালামাল সংক্রান্ত কোনো বিশেষ দ্রষ্টব্য থাকলে লিখুন...', 'en': 'Any special notes regarding the asset...', 'ar': 'أي ملاحظات خاصة بالمقتنى...', 'ur': 'سامان کے حوالے سے کوئی خاص نوٹ لکھیں...'});
+  String get saveAssetBtn => _get({'bn': 'মালামাল যুক্ত করুন', 'en': 'Add Asset', 'ar': 'حفظ المقتنى', 'ur': 'سامان شامل کریں'});
+  String get updateAssetBtn => _get({'bn': 'আপডেট সংরক্ষণ করুন', 'en': 'Save Changes', 'ar': 'حفظ التعديلات', 'ur': 'تبدیلیاں محفوظ کریں'});
+  String get saveAssetSuccess => _get({'bn': 'নতুন মালামাল সফলভাবে যুক্ত হয়েছে', 'en': 'New asset added successfully', 'ar': 'تمت إضافة المقتنى الجديد بنجاح', 'ur': 'نیا سامان کامیابی سے شامل کر دیا گیا'});
+  String get updateAssetSuccess => _get({'bn': 'মালামালের তথ্য সফলভাবে আপডেট হয়েছে', 'en': 'Asset updated successfully', 'ar': 'تم تحديث بيانات المقتنى بنجاح', 'ur': 'سامان کی تفصیلات کامیابی سے اپ ڈیٹ ہو گئیں'});
+
+  String translateCategory(String cat) {
+    if (cat.contains('আসবাবপত্র') || cat.toLowerCase().contains('furniture')) {
+      return _get({'bn': 'আসবাবপত্র', 'en': 'Furniture', 'ar': 'أثاث', 'ur': 'فرنیچر'});
+    }
+    if (cat.contains('ইলেকট্রনিক্স') || cat.toLowerCase().contains('electronics')) {
+      return _get({'bn': 'ইলেকট্রনিক্স ও প্রযুক্তি', 'en': 'Electronics & Tech', 'ar': 'إلكترونيات وتكنولوجيا', 'ur': 'الیکٹرانکس و ٹیکنالوجی'});
+    }
+    if (cat.contains('বই') || cat.toLowerCase().contains('book')) {
+      return _get({'bn': 'বই সংরক্ষণ ও বাঁধাই', 'en': 'Book Care & Binding', 'ar': 'حفظ الكتب وتجليدها', 'ur': 'کتابوں کی حفاظت اور جلد بندی'});
+    }
+    if (cat.contains('স্টেশনারি') || cat.toLowerCase().contains('stationery')) {
+      return _get({'bn': 'স্টেশনারি ও অফিস', 'en': 'Stationery & Office', 'ar': 'قرطاسية ومكتب', 'ur': 'اسٹیشنری اور دفتر'});
+    }
+    if (cat.contains('পরিচ্ছন্নতা') || cat.toLowerCase().contains('cleaning')) {
+      return _get({'bn': 'পরিচ্ছন্নতা ও অন্যান্য', 'en': 'Cleaning & Supplies', 'ar': 'نظافة ومستلزمات', 'ur': 'صفائی اور دیگر'});
+    }
+    return cat;
+  }
+
+  String translateUnit(String unit) {
+    if (unit == 'টি' || unit.toLowerCase() == 'pcs' || unit.toLowerCase() == 'piece') {
+      return _get({'bn': 'টি', 'en': 'pcs', 'ar': 'قطعة', 'ur': 'عدد'});
+    }
+    if (unit == 'সেট' || unit.toLowerCase() == 'set') {
+      return _get({'bn': 'সেট', 'en': 'set', 'ar': 'مجموعة', 'ur': 'سیٹ'});
+    }
+    if (unit == 'জোড়া' || unit.toLowerCase() == 'pair') {
+      return _get({'bn': 'জোড়া', 'en': 'pair', 'ar': 'زوج', 'ur': 'جوڑا'});
+    }
+    if (unit == 'প্যাকেট' || unit.toLowerCase() == 'packet' || unit.toLowerCase() == 'pkt') {
+      return _get({'bn': 'প্যাকেট', 'en': 'pkt', 'ar': 'حزمة', 'ur': 'پیکٹ'});
+    }
+    if (unit == 'রোল' || unit.toLowerCase() == 'roll') {
+      return _get({'bn': 'রোল', 'en': 'roll', 'ar': 'لفة', 'ur': 'رول'});
+    }
+    if (unit == 'বক্স' || unit.toLowerCase() == 'box') {
+      return _get({'bn': 'বক্স', 'en': 'box', 'ar': 'صندوق', 'ur': 'باکس'});
+    }
+    return unit;
+  }
+
   // Helper
   String _get(Map<String, String> values) {
     return values[locale] ?? values['en'] ?? values['bn'] ?? '';
