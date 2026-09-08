@@ -12,6 +12,8 @@ migrate_working_dir/
 .firebase/
 photo*
 *.apk
+/*.ttf
+scratch/
 
 # IntelliJ related
 *.iml

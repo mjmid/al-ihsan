@@ -369,6 +369,12 @@ class DatabaseHelper {
         SELECT accession_no FROM $kTransactionsTable WHERE status = 'Active'
       )
     ''');
+
+    // Clean up phantom assets that have empty or null names
+    await db.execute('''
+      DELETE FROM $kAssetsTable 
+      WHERE name IS NULL OR TRIM(name) = '';
+    ''');
   }
 
   /// Executes a raw SQL INSERT / UPDATE / DELETE statement.

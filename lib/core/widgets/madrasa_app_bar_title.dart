@@ -37,11 +37,11 @@ class MadrasaAppBarTitle extends ConsumerWidget {
             children: [
               Image.asset(
                 logoAsset,
-                height: 45,
+                height: 46,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.school, size: 45, color: colorScheme.primary),
+                    Icon(Icons.school, size: 46, color: colorScheme.primary),
               ),
               const SizedBox(width: 10),
               ShaderMask(
@@ -55,22 +55,41 @@ class MadrasaAppBarTitle extends ConsumerWidget {
                 blendMode: BlendMode.srcIn,
                 child: Image.asset(
                   'assets/images/calligraphy.png',
-                  height: 40,
+                  height: 38,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 3),
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: titleFontFamily,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface.withOpacity(0.85),
-            ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF34D399)
+                      : const Color(0xFF047857),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: titleFontFamily,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: isDark
+                      ? const Color(0xFF6EE7B7)
+                      : const Color(0xFF047857),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ),
         ],
       ),

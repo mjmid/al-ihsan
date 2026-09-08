@@ -5,6 +5,7 @@ import 'package:maktaba_ihsan/core/database/hive_helper.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/models/hive_models/routine_entry.dart';
 import 'package:maktaba_ihsan/core/providers/settings_provider.dart';
+import 'package:maktaba_ihsan/core/services/routine_alarm_service.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'package:uuid/uuid.dart';
 
@@ -82,6 +83,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
     );
 
     if (confirmed == true) {
+      await RoutineAlarmService.cancelRoutine(routine.id);
       await routine.delete();
     }
   }
@@ -191,20 +193,12 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           final currentDayIndex = _tabController.index + 1;
           _showAddRoutineSheet(context, currentDayIndex);
         },
-        icon: const Icon(Icons.add),
-        label: Text(
-          t.addRoutine,
-          style: TextStyle(
-            fontFamily: appFontFamily,
-            fontFamilyFallback: fontFallback,
-            fontWeight: FontWeight.normal,
-          ),
-        ),
+        child: const Icon(Icons.add),
       ),
       body: ValueListenableBuilder(
         valueListenable: HiveHelper.routineBox.listenable(),
@@ -506,7 +500,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                 ),
                               ),
 
-                              // Middle: Subject, Jamat & Period Details
+                              // Middle: Subject, Action Buttons & Details
                               Expanded(
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -517,6 +511,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                     mainAxisAlignment:
                                         MainAxisAlignment.center,
                                     children: [
+                                      // Top Row: Subject Name + Action Buttons
                                       Row(
                                         children: [
                                           Icon(
@@ -530,7 +525,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                               routine.subjectName,
                                               style: TextStyle(
                                                 fontSize: 16,
-                                                fontWeight: FontWeight.normal,
+                                                fontWeight: FontWeight.w600,
                                                 color:
                                                     theme.colorScheme.onSurface,
                                                 fontFamily: appFontFamily,
@@ -541,20 +536,67 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
+                                          if (routine.reminderMinutes != null ||
+                                              routine.nightBeforeAlarm) ...[
+                                            Tooltip(
+                                              message: routine.nightBeforeAlarm
+                                                  ? 'আগামীকাল ${routine.className} শ্রেণীতে আপনার দরস আছে। সময়: ${routine.nightBeforeAlarmTime ?? "২১:০০"}'
+                                                  : 'অ্যালার্ম: ${routine.reminderMinutes} মিনিট আগে',
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: theme.colorScheme.primary.withOpacity(0.12),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.notifications_active_rounded,
+                                                  color: theme.colorScheme.primary,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 2),
+                                          ],
+                                          IconButton(
+                                            icon: Icon(Icons.edit_outlined,
+                                                color: theme.colorScheme.primary
+                                                    .withOpacity(0.8),
+                                                size: 18),
+                                            onPressed: () => _showAddRoutineSheet(
+                                                context, dayIndex,
+                                                existingRoutine: routine),
+                                            tooltip: t.editRoutine,
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(
+                                                minWidth: 28, minHeight: 28),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.delete_outline_rounded,
+                                                color: Colors.red.shade400,
+                                                size: 18),
+                                            onPressed: () =>
+                                                _confirmDelete(context, routine, t),
+                                            tooltip: t.delete,
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(
+                                                minWidth: 28, minHeight: 28),
+                                          ),
                                         ],
                                       ),
                                       const SizedBox(height: 8),
+                                      // Bottom Row: Details Badges (Class, Room, Alarm)
                                       Wrap(
                                         spacing: 8,
-                                        runSpacing: 4,
+                                        runSpacing: 5,
                                         children: [
+                                          // Class Badge (only শ্রেণী without জামাআত)
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 3),
+                                                horizontal: 8, vertical: 3.5),
                                             decoration: BoxDecoration(
                                               color: theme
                                                   .colorScheme.primaryContainer
-                                                  .withOpacity(0.3),
+                                                  .withOpacity(0.35),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                             ),
@@ -588,7 +630,7 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                               padding:
                                                   const EdgeInsets.symmetric(
                                                       horizontal: 8,
-                                                      vertical: 3),
+                                                      vertical: 3.5),
                                               decoration: BoxDecoration(
                                                 color: theme
                                                     .colorScheme
@@ -614,10 +656,72 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                                           .onSurfaceVariant,
                                                       fontSize: 12,
                                                       fontWeight:
-                                                          FontWeight.normal,
+                                                        FontWeight.normal,
                                                       fontFamily: appFontFamily,
                                                       fontFamilyFallback:
                                                           fontFallback,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          if (routine.reminderMinutes != null)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 7, vertical: 3.5),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber.withOpacity(0.15),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(
+                                                    color: Colors.amber.shade700.withOpacity(0.25),
+                                                    width: 0.8),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.alarm,
+                                                      size: 12,
+                                                      color: Colors.amber.shade900),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${routine.reminderMinutes} মি. আগে',
+                                                    style: TextStyle(
+                                                      color: Colors.amber.shade900,
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w500,
+                                                      fontFamily: appFontFamily,
+                                                      fontFamilyFallback: fontFallback,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          if (routine.nightBeforeAlarm)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 7, vertical: 3.5),
+                                              decoration: BoxDecoration(
+                                                color: Colors.indigo.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(
+                                                    color: Colors.indigo.shade400.withOpacity(0.25),
+                                                    width: 0.8),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.nightlight_round,
+                                                      size: 12,
+                                                      color: Colors.indigo.shade700),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'আগের রাত ${routine.nightBeforeAlarmTime ?? "২১:০০"}',
+                                                    style: TextStyle(
+                                                      color: Colors.indigo.shade900,
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w500,
+                                                      fontFamily: appFontFamily,
+                                                      fontFamilyFallback: fontFallback,
                                                     ),
                                                   ),
                                                 ],
@@ -627,56 +731,6 @@ class _TeacherRoutinePageState extends ConsumerState<TeacherRoutinePage>
                                       ),
                                     ],
                                   ),
-                                ),
-                              ),
-
-                              // Right Side: Quick Action Buttons
-                              Padding(
-                                padding: const EdgeInsets.only(right: 6.0),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (routine.reminderMinutes != null ||
-                                        routine.nightBeforeAlarm)
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.notifications_active_rounded,
-                                          color: theme.colorScheme.primary,
-                                          size: 20,
-                                        ),
-                                        onPressed: () {},
-                                        tooltip: routine.nightBeforeAlarm
-                                            ? 'আগামিকাল ${routine.className} জামাতে আপনার দরস আছে।\nসময়: ${routine.nightBeforeAlarmTime ?? "21:00"}'
-                                            : 'Alarm: ${routine.reminderMinutes}m',
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(
-                                            minWidth: 32, minHeight: 32),
-                                      ),
-                                    IconButton(
-                                      icon: Icon(Icons.edit_outlined,
-                                          color: theme.colorScheme.primary
-                                              .withOpacity(0.8),
-                                          size: 20),
-                                      onPressed: () => _showAddRoutineSheet(
-                                          context, dayIndex,
-                                          existingRoutine: routine),
-                                      tooltip: t.editRoutine,
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(
-                                          minWidth: 32, minHeight: 32),
-                                    ),
-                                    IconButton(
-                                      icon: Icon(Icons.delete_outline_rounded,
-                                          color: Colors.red.shade400,
-                                          size: 20),
-                                      onPressed: () =>
-                                          _confirmDelete(context, routine, t),
-                                      tooltip: t.delete,
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(
-                                          minWidth: 32, minHeight: 32),
-                                    ),
-                                  ],
                                 ),
                               ),
                             ],
@@ -768,7 +822,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_subjectController.text.trim().isEmpty || _selectedDays.isEmpty) return;
 
     final entryId = widget.existingRoutine?.id ?? const Uuid().v4();
@@ -790,8 +844,21 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
       nightBeforeAlarmTime:
           _nightBeforeAlarm ? _nightBeforeAlarmTimeController.text : null,
     );
-    HiveHelper.routineBox.put(entry.id, entry);
-    Navigator.pop(context);
+    await HiveHelper.routineBox.put(entry.id, entry);
+    await RoutineAlarmService.scheduleRoutine(entry);
+    if (mounted) {
+      Navigator.pop(context);
+      final hasAlarm = entry.reminderMinutes != null || entry.nightBeforeAlarm;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(hasAlarm
+              ? 'রুটিন ও অ্যালার্ম সফলভাবে সেট করা হয়েছে!'
+              : 'রুটিন সংরক্ষিত হয়েছে!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _pickTime(TextEditingController controller) async {
@@ -1096,10 +1163,22 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
               decoration: const InputDecoration(border: OutlineInputBorder()),
               items: [
                 DropdownMenuItem(value: null, child: Text(t.alarmOff)),
-                const DropdownMenuItem(value: 5, child: Text('5 min')),
-                const DropdownMenuItem(value: 10, child: Text('10 min')),
-                const DropdownMenuItem(value: 15, child: Text('15 min')),
-                const DropdownMenuItem(value: 30, child: Text('30 min')),
+                DropdownMenuItem(
+                  value: 5,
+                  child: Text(t.isBengali ? '৫ মিনিট আগে (5 min)' : '5 min before'),
+                ),
+                DropdownMenuItem(
+                  value: 10,
+                  child: Text(t.isBengali ? '১০ মিনিট আগে (10 min)' : '10 min before'),
+                ),
+                DropdownMenuItem(
+                  value: 15,
+                  child: Text(t.isBengali ? '১৫ মিনিট আগে (15 min)' : '15 min before'),
+                ),
+                DropdownMenuItem(
+                  value: 30,
+                  child: Text(t.isBengali ? '৩০ মিনিট আগে (30 min)' : '30 min before'),
+                ),
               ],
               onChanged: (val) => setState(() => _reminderMinutes = val),
             ),
@@ -1114,7 +1193,7 @@ class _AddRoutineFormState extends ConsumerState<_AddRoutineForm> {
                 ),
               ),
               subtitle: Text(
-                'আপনার আগামিকাল ${_startTimeController.text.isEmpty ? "___" : _startTimeController.text} টা থেকে ${_classController.text.isEmpty ? "___" : _classController.text} জামাতে ${_subjectController.text.isEmpty ? "___" : _subjectController.text} কিতাবের দরস আছে, মুতালায়া করুন।',
+                'আপনার আগামিকাল ${_startTimeController.text.isEmpty ? "___" : _startTimeController.text} টা থেকে ${_classController.text.isEmpty ? "___" : _classController.text} শ্রেণীতে ${_subjectController.text.isEmpty ? "___" : _subjectController.text} কিতাবের দরস আছে, মুতালায়া করুন।',
                 style: TextStyle(
                   fontSize: 12,
                   fontFamily: appFontFamily,

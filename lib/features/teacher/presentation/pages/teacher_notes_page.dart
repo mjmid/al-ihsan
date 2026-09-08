@@ -9,6 +9,9 @@ import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'teacher_note_editor_page.dart';
+import '../widgets/teacher_backup_dialog.dart';
+import 'package:maktaba_ihsan/core/services/print_service.dart';
+import 'package:maktaba_ihsan/core/services/teacher_backup_service.dart';
 
 class TeacherNotesPage extends ConsumerWidget {
   const TeacherNotesPage({super.key});
@@ -29,18 +32,46 @@ class TeacherNotesPage extends ConsumerWidget {
         valueListenable: HiveHelper.notesBox.listenable(),
         builder: (context, Box<TeacherNote> box, _) {
           final t = ref.watch(translationProvider);
-          if (box.isEmpty) {
-            return Center(child: Text(t.noNotesFound));
-          }
-
           final notes = box.values.toList();
-          notes.sort(
-              (a, b) => b.updatedAt.compareTo(a.updatedAt)); // Newest first
+          notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt)); // Newest first
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: notes.length,
-            itemBuilder: (context, index) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '${t.personalNotesTitle} (${notes.length})',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+              if (notes.isEmpty)
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.note_alt_outlined, size: 48, color: Theme.of(context).colorScheme.outline),
+                        const SizedBox(height: 12),
+                        Text(t.noNotesFound, style: const TextStyle(fontSize: 15)),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          icon: const Icon(Icons.settings_backup_restore_rounded, size: 18),
+                          label: Text(t.restorePreviousBackup),
+                          onPressed: () => TeacherBackupDialog.show(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: notes.length,
+                    itemBuilder: (context, index) {
               final note = notes[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
@@ -83,8 +114,15 @@ class TeacherNotesPage extends ConsumerWidget {
                                       ? note.title
                                       : t.untitled,
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    fontFamilyFallback: [
+                                      'ArabicMyLotus',
+                                      'ArabicUthmanic',
+                                      'UrduNastaleeq',
+                                      'BengaliSolaiman',
+                                    ],
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -108,7 +146,14 @@ class TeacherNotesPage extends ConsumerWidget {
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurfaceVariant,
-                                          fontSize: 14),
+                                          fontSize: 14,
+                                          fontFamilyFallback: const [
+                                            'ArabicMyLotus',
+                                            'ArabicUthmanic',
+                                            'UrduNastaleeq',
+                                            'BengaliSolaiman',
+                                          ],
+                                      ),
                                     );
                                   }
                                 ),
@@ -148,38 +193,62 @@ class TeacherNotesPage extends ConsumerWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant),
-                            onSelected: (val) {
-                              if (val == 'share') {
-                                String shareText = note.content;
-                                try {
-                                  final json = jsonDecode(note.content);
-                                  if (json is List) {
-                                    shareText = json.map((op) => op['insert']?.toString() ?? '').join();
-                                  }
-                                } catch (_) {}
-                                Share.share('${note.title}\n\n$shareText');
+                            onSelected: (val) async {
+                              if (val == 'share_pdf') {
+                                await PrintService.shareOrPrintNote(note, isShare: true);
+                              } else if (val == 'print_pdf') {
+                                await PrintService.shareOrPrintNote(note, isShare: false);
+                              } else if (val == 'share_text') {
+                                final cleanContent = TeacherBackupService.extractPlainText(note.content).trim();
+                                final title = note.title.trim();
+                                final textToShare = title.isNotEmpty
+                                    ? '$title\n\n$cleanContent'
+                                    : cleanContent;
+                                Share.share(
+                                  textToShare,
+                                  subject: title.isNotEmpty ? title : null,
+                                );
                               } else if (val == 'delete') {
                                 note.delete();
+                                final currentEmail = TeacherBackupService.getBackupGmail();
+                                if (currentEmail != null && currentEmail.isNotEmpty) {
+                                  TeacherBackupService.saveCurrentToCloud(currentEmail);
+                                }
                               }
                             },
                             itemBuilder: (context) => [
                               PopupMenuItem(
-                                  value: 'share',
-                                  child: Row(children: [
-                                    const Icon(Icons.share_outlined, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(t.share)
-                                  ])),
+                                value: 'share_pdf',
+                                child: Row(children: [
+                                  const Icon(Icons.picture_as_pdf_outlined, color: Colors.red, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(t.shareAsPdf),
+                                ]),
+                              ),
                               PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(children: [
-                                    const Icon(Icons.delete_outline,
-                                        color: Colors.red, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(t.delete,
-                                        style:
-                                            const TextStyle(color: Colors.red))
-                                  ])),
+                                value: 'print_pdf',
+                                child: Row(children: [
+                                  const Icon(Icons.print_outlined, color: Colors.blue, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(t.printNote),
+                                ]),
+                              ),
+                              PopupMenuItem(
+                                value: 'share_text',
+                                child: Row(children: [
+                                  const Icon(Icons.text_fields_rounded, color: Colors.teal, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(t.shareAsText),
+                                ]),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(children: [
+                                  const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(t.delete, style: const TextStyle(color: Colors.red)),
+                                ]),
+                              ),
                             ],
                           ),
                         ],
@@ -188,10 +257,13 @@ class TeacherNotesPage extends ConsumerWidget {
                   ),
                 ),
               );
-            },
-          );
-        },
-      ),
-    );
-  }
+              },
+            ),
+          ),
+        ],
+      );
+    },
+  ),
+);
+}
 }

@@ -9,6 +9,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'core/constants/app_constants.dart';
 import 'core/database/database_helper.dart';
 import 'core/database/hive_helper.dart';
+import 'core/services/routine_alarm_service.dart';
 import 'app/app.dart';
 
 /// ============================================================
@@ -51,6 +52,10 @@ Future<void> main() async {
   final dbHelper = DatabaseHelper.instance;
   await dbHelper.repairBookStatuses();
   debugPrint('✅ SQLite database initialized and repaired: $kDbName');
+
+  // ── Step 3.5: Initialize Routine Alarm Service ───────────────────────────
+  await RoutineAlarmService.initialize();
+  await RoutineAlarmService.rescheduleAll();
 
   // ── Step 4: Run App ───────────────────────────────────────────────────────
   // ProviderScope is the root of Riverpod's dependency injection tree.

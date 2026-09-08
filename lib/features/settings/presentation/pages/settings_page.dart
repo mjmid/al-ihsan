@@ -7,6 +7,7 @@ import 'package:maktaba_ihsan/features/auth/presentation/pages/login_page.dart';
 import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
 import 'package:maktaba_ihsan/core/providers/mode_provider.dart';
 import 'package:maktaba_ihsan/core/models/user_model.dart';
+import 'package:maktaba_ihsan/features/teacher/presentation/widgets/teacher_backup_dialog.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -124,12 +125,27 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 12),
           _AdminWhatsAppField(
             initialValue: settings.adminWhatsAppNumber ?? '',
-            onChanged: (val) {
+            onSave: (val) {
               ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(val);
             },
           ),
           const SizedBox(height: 24),
         ],
+
+        // Teacher Backup & Gmail Section
+        _buildSectionHeader(context, Icons.shield_outlined, t.teacherBackupSectionHeader),
+        const SizedBox(height: 12),
+        _buildManagementCard(
+          context: context,
+          icon: Icons.mark_email_read_outlined,
+          iconColor: Colors.teal,
+          title: t.teacherBackupCardTitle,
+          subtitle: t.teacherBackupCardSubtitle,
+          onTap: () {
+            TeacherBackupDialog.show(context);
+          },
+        ),
+        const SizedBox(height: 24),
 
         // Management Section
         _buildSectionHeader(context, Icons.account_circle, t.management),
@@ -405,21 +421,22 @@ class _SegmentData {
   });
 }
 
-class _AdminWhatsAppField extends StatefulWidget {
+class _AdminWhatsAppField extends ConsumerStatefulWidget {
   final String initialValue;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSave;
 
   const _AdminWhatsAppField({
     required this.initialValue,
-    required this.onChanged,
+    required this.onSave,
   });
 
   @override
-  State<_AdminWhatsAppField> createState() => _AdminWhatsAppFieldState();
+  ConsumerState<_AdminWhatsAppField> createState() => _AdminWhatsAppFieldState();
 }
 
-class _AdminWhatsAppFieldState extends State<_AdminWhatsAppField> {
+class _AdminWhatsAppFieldState extends ConsumerState<_AdminWhatsAppField> {
   late TextEditingController _controller;
+  bool _isSaved = false;
 
   @override
   void initState() {
@@ -428,29 +445,91 @@ class _AdminWhatsAppFieldState extends State<_AdminWhatsAppField> {
   }
 
   @override
+  void didUpdateWidget(covariant _AdminWhatsAppField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue && _controller.text != widget.initialValue) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  void _handleSave() {
+    final number = _controller.text.trim();
+    widget.onSave(number);
+    FocusScope.of(context).unfocus();
+    setState(() => _isSaved = true);
+    final t = ref.read(translationProvider);
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(t.adminWhatsAppSavedSuccess)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _isSaved = false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final t = ref.watch(translationProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
     return NeuCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.phone_android, color: Colors.green),
-          const SizedBox(width: 16),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.phone_android, color: Colors.green, size: 22),
+          ),
+          const SizedBox(width: 14),
           Expanded(
-              child: TextFormField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  labelText: 'অ্যাডমিন হোয়াটসঅ্যাপ নাম্বার',
-                  hintText: 'যেমন +88017xxxxxxxx',
-                  border: InputBorder.none,
-                ),
-                onChanged: widget.onChanged,
+            child: TextFormField(
+              controller: _controller,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: t.adminWhatsAppNumberLabel,
+                hintText: t.adminWhatsAppNumberHint,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 4),
               ),
+              onFieldSubmitted: (_) => _handleSave(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isSaved ? Colors.green : colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            icon: Icon(_isSaved ? Icons.check : Icons.save_outlined, size: 16),
+            label: Text(
+              _isSaved ? t.saved : t.saveBtn,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            onPressed: _handleSave,
           ),
         ],
       ),

@@ -154,7 +154,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           child: Directionality(
             textDirection: TextDirection.ltr,
             child: AppBar(
-              toolbarHeight: 90,
+              toolbarHeight: 96,
               leading: (_selectedIndex == 1 && showInactive)
                   ? IconButton(
                       icon: const Icon(Icons.arrow_back),

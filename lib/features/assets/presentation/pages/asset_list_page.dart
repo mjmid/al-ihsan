@@ -1120,53 +1120,6 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                         ),
                       ),
                     ),
-                    if (widget.isAdmin) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () async {
-                              final repo = ref.read(assetRepositoryProvider);
-                              await repo.updateQuantity(asset.assetId, -1);
-                              ref.invalidate(allAssetsProvider);
-                              ref.invalidate(assetSummaryCountsProvider);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.remove, size: 16),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () async {
-                              final repo = ref.read(assetRepositoryProvider);
-                              await repo.updateQuantity(asset.assetId, 1);
-                              ref.invalidate(allAssetsProvider);
-                              ref.invalidate(assetSummaryCountsProvider);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.add,
-                                size: 16,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ],

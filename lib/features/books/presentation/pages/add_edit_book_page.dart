@@ -32,6 +32,7 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
   late TextEditingController _remarksController;
   late TextEditingController _categoryController;
   bool _isBulkAdd = false;
+  bool _showAllMissing = false;
   late TextEditingController _bulkVolumesController;
   BookAccessionAnalysis? _cachedAnalysis;
 
@@ -207,7 +208,7 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 96,
         title: MadrasaAppBarTitle(title: isEdit ? t.editBook : t.addBookTitle),
       ),
       body: Form(
@@ -233,36 +234,15 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (analysis.missingNumbers.isNotEmpty && !isEdit) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.info_outline,
-                                    color: Colors.orange.shade700),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'মাঝে এই নম্বরগুলো ফাঁকা আছে:\n${analysis.missingNumbers.take(15).join(', ')}${analysis.missingNumbers.length > 15 ? '...' : ''}',
-                                    style: TextStyle(
-                                        color: Colors.orange.shade900),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
                         TextFormField(
                           controller: _accessionNoController,
                           decoration: InputDecoration(
-                            labelText: t.accessionNo,
-                            border: OutlineInputBorder(),
+                            labelText: t.bookNumber,
+                            prefixIcon: const Icon(Icons.tag),
+                            border: const OutlineInputBorder(),
+                            helperText: !isEdit && !_isBulkAdd
+                                ? 'আপনি চাইলে নিচের রিকমেন্ডেড ফাঁকা নাম্বারগুলো ব্যবহার করতে পারেন'
+                                : null,
                           ),
                           enabled: !isEdit && !_isBulkAdd,
                           validator: (value) {
@@ -277,6 +257,139 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
                             return null;
                           },
                         ),
+                        if (analysis.missingNumbers.isNotEmpty &&
+                            !isEdit &&
+                            !_isBulkAdd) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFBBF7D0),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.auto_fix_high,
+                                      size: 18,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'রিকমেন্ডেড ফাঁকা নাম্বার (${analysis.missingNumbers.length}টি ফাঁকা আছে):',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      // Next available chip
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 6.0),
+                                        child: ChoiceChip(
+                                          avatar: const Icon(
+                                              Icons.add_circle_outline,
+                                              size: 16),
+                                          label: Text(
+                                              'পরবর্তী নতুন (${analysis.nextAvailable})'),
+                                          selected: _accessionNoController
+                                                  .text
+                                                  .trim() ==
+                                              analysis.nextAvailable
+                                                  .toString(),
+                                          selectedColor: Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withOpacity(0.25),
+                                          onSelected: (selected) {
+                                            setState(() {
+                                              _accessionNoController.text =
+                                                  analysis.nextAvailable
+                                                      .toString();
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      // Missing vacant number chips
+                                      ...analysis.missingNumbers
+                                          .take(_showAllMissing
+                                              ? analysis.missingNumbers.length
+                                              : 25)
+                                          .map((num) {
+                                        final isSelected =
+                                            _accessionNoController.text
+                                                    .trim() ==
+                                                num.toString();
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(right: 6.0),
+                                          child: ChoiceChip(
+                                            avatar: Icon(
+                                              isSelected
+                                                  ? Icons.check
+                                                  : Icons.tag,
+                                              size: 15,
+                                            ),
+                                            label: Text('# $num'),
+                                            selected: isSelected,
+                                            selectedColor: Colors.amber.shade200,
+                                            onSelected: (selected) {
+                                              setState(() {
+                                                _accessionNoController.text =
+                                                    num.toString();
+                                              });
+                                            },
+                                          ),
+                                        );
+                                      }),
+                                      if (analysis.missingNumbers.length > 25 &&
+                                          !_showAllMissing)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(left: 4.0),
+                                          child: ActionChip(
+                                            label: Text(
+                                                '+ আরো ${analysis.missingNumbers.length - 25}টি'),
+                                            onPressed: () {
+                                              setState(() {
+                                                _showAllMissing = true;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     );
                   },

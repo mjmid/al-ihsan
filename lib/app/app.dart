@@ -34,13 +34,13 @@ class MaktabaApp extends ConsumerWidget {
     List<String> fontFallback;
     if (locale == 'ar') {
       appFontFamily = 'ArabicMyLotus';
-      fontFallback = ['BengaliSolaiman', 'UrduNastaleeq'];
+      fontFallback = ['BengaliSolaiman', 'UrduNastaleeq', 'ArabicUthmanic'];
     } else if (locale == 'ur') {
       appFontFamily = 'UrduNastaleeq';
-      fontFallback = ['ArabicMyLotus', 'BengaliSolaiman'];
+      fontFallback = ['ArabicMyLotus', 'BengaliSolaiman', 'ArabicUthmanic'];
     } else {
       appFontFamily = 'BengaliSolaiman';
-      fontFallback = ['ArabicMyLotus', 'UrduNastaleeq'];
+      fontFallback = ['ArabicMyLotus', 'ArabicUthmanic', 'UrduNastaleeq'];
     }
 
     return MaterialApp(
@@ -84,6 +84,10 @@ class MaktabaApp extends ConsumerWidget {
         useMaterial3: true,
         fontFamily: appFontFamily,
         fontFamilyFallback: fontFallback,
+        textTheme: ThemeData.light().textTheme.apply(
+          fontFamily: appFontFamily,
+          fontFamilyFallback: fontFallback,
+        ),
       ),
 
       darkTheme: FlexThemeData.dark(
@@ -120,6 +124,10 @@ class MaktabaApp extends ConsumerWidget {
         useMaterial3: true,
         fontFamily: appFontFamily,
         fontFamilyFallback: fontFallback,
+        textTheme: ThemeData.dark().textTheme.apply(
+          fontFamily: appFontFamily,
+          fontFamilyFallback: fontFallback,
+        ),
       ),
 
       // Follow system theme by default — overrideable in settings

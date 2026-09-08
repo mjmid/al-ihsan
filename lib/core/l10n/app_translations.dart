@@ -10,6 +10,8 @@ class AppTranslations {
   final String locale;
   AppTranslations(this.locale);
 
+  bool get isBengali => locale == 'bn';
+
   String get appTitle => _get({
         'bn': 'মাকতাবাতুল ইহসান',
         'en': 'Maktabatu Ihsan',
@@ -53,10 +55,10 @@ class AppTranslations {
   String get inactive => _get(
       {'bn': 'নিষ্ক্রিয়', 'en': 'Inactive', 'ar': 'غير نشط', 'ur': 'غیر فعال'});
   String get classJamat => _get({
-        'bn': 'শ্রেণী/জামাআত:',
-        'en': 'Class:',
-        'ar': 'الصف/الجماعة:',
-        'ur': 'کلاس/جماعت:'
+        'bn': 'শ্রেণী',
+        'en': 'Class',
+        'ar': 'الصف',
+        'ur': 'کلاس'
       });
   String get phone =>
       _get({'bn': 'মোবাইল:', 'en': 'Phone:', 'ar': 'الهاتف:', 'ur': 'فون:'});
@@ -178,10 +180,16 @@ class AppTranslations {
         'ur': 'پہلے پڑھی گئی'
       });
   String get accessionNo => _get({
-        'bn': 'ক্রমিক নং',
-        'en': 'Accession No',
-        'ar': 'رقم الباركود',
-        'ur': 'ایکشن نمبر'
+        'bn': 'কিতাব নং',
+        'en': 'Book No',
+        'ar': 'رقم الكتاب',
+        'ur': 'کتاب نمبر'
+      });
+  String get bookNumber => _get({
+        'bn': 'কিতাব নং',
+        'en': 'Book No',
+        'ar': 'رقم الكتاب',
+        'ur': 'کتاب نمبر'
       });
   String get noBooks => _get({
         'bn': 'কোনো কিতাব পাওয়া যায়নি',
@@ -223,6 +231,7 @@ class AppTranslations {
   String get reminderNightBefore => _get({'bn': 'আগের দিন রাতে রিমাইন্ডার', 'en': 'Reminder the night before', 'ar': 'تذكير في الليلة السابقة', 'ur': 'ایک رات پہلے یاد دہانی'});
   String get reminderNightBeforeDesc => _get({'bn': 'বইটি জমা দেওয়ার আগের দিন রাতে আপনাকে স্মরণ করিয়ে দেওয়া হবে', 'en': 'You will be reminded the night before the book is due', 'ar': 'سيتم تذكيرك في الليلة السابقة لموعد تسليم الكتاب', 'ur': 'کتاب جمع کرانے سے ایک رات پہلے آپ کو یاد دلایا جائے گا'});
   String get saveBtn => _get({'bn': 'সেভ করুন', 'en': 'Save', 'ar': 'حفظ', 'ur': 'محفوظ کریں'});
+  String get save => saveBtn;
   String get editTransaction => _get({'bn': 'লেনদেন এডিট করুন', 'en': 'Edit Transaction', 'ar': 'تعديل المعاملة', 'ur': 'معاملہ میں ترمیم کریں'});
   String get addTransaction => _get({'bn': 'নতুন লেনদেন', 'en': 'Add Transaction', 'ar': 'إضافة معاملة', 'ur': 'نیا معاملہ'});
   String get all => _get({'bn': 'সব', 'en': 'All', 'ar': 'الكل', 'ur': 'تمام'});
@@ -308,7 +317,7 @@ class AppTranslations {
   String get themeSetting => _get({'bn': 'থিম', 'en': 'Theme', 'ar': 'السمة', 'ur': 'تھیم'});
   String get transactions => _get({'bn': 'লেনদেন', 'en': 'Transactions', 'ar': 'المعاملات', 'ur': 'معاملات'});
   String get transactionTab => _get({'bn': 'লেনদেন', 'en': 'Transactions', 'ar': 'المعاملات', 'ur': 'معاملات'});
-  String get translatorLabel => _get({'bn': 'অনুবাদক', 'en': 'Translator', 'ar': 'المترجم', 'ur': 'مترجم'});
+  String get translatorLabel => _get({'bn': 'অনুবাদক / মুহাক্কিক', 'en': 'Translator / Editor', 'ar': 'المترجم / المحقق', 'ur': 'مترجم / محقق'});
   String get useTeacherDashboard => _get({'bn': 'শিক্ষক ড্যাশবোর্ড', 'en': 'Teacher Dashboard', 'ar': 'لوحة تحكم المعلم', 'ur': 'استاد کا ڈیش بورڈ'});
   String get volumeNoLabel => _get({'bn': 'খন্ড নং', 'en': 'Volume No', 'ar': 'رقم المجلد', 'ur': 'جلد نمبر'});
 
@@ -476,6 +485,332 @@ class AppTranslations {
     }
     return unit;
   }
+
+  // Teacher Backup & Gmail
+  String get personalBackupGmail => _get({
+        'bn': 'ব্যক্তিগত ব্যাকআপ (জিমেইল)',
+        'en': 'Personal Backup (Gmail)',
+        'ar': 'النسخ الاحتياطي الشخصي (جيميل)',
+        'ur': 'ذاتی بیک اپ (جی میل)',
+      });
+  String get backupDialogSubtitle => _get({
+        'bn': 'লগইন করলে ডাটা আসবে, লগআউট করলে চলে যাবে',
+        'en': 'Login to sync data. Logout removes device data',
+        'ar': 'تسجيل الدخول يستعيد البيانات، وتسجيل الخروج يمسحها من الجهاز',
+        'ur': 'لاگ ان کرنے سے ڈیٹا آئے گا، لاگ آؤٹ سے ہٹ جائے گا',
+      });
+  String get loggedInStatus => _get({
+        'bn': 'লগইন আছেন',
+        'en': 'Logged in',
+        'ar': 'تم تسجيل الدخول',
+        'ur': 'لاگ ان ہیں',
+      });
+  String get logoutBtn => _get({
+        'bn': 'লগআউট',
+        'en': 'Logout',
+        'ar': 'تسجيل الخروج',
+        'ur': 'لاگ آؤٹ',
+      });
+  String get saveToGmailBtn => _get({
+        'bn': 'জিমেইলে ব্যাকআপ সংরক্ষণ করুন',
+        'en': 'Save Backup to Gmail & Cloud',
+        'ar': 'حفظ النسخة الاحتياطية في الجيميل والسحاب',
+        'ur': 'جی میل اور کلاؤڈ میں بیک اپ محفوظ کریں',
+      });
+  String get restorePreviousDataBtn => _get({
+        'bn': 'আগের সব ডাটা রিস্টোর করুন',
+        'en': 'Restore All Previous Data',
+        'ar': 'استعادة كافة البيانات السابقة',
+        'ur': 'سابقہ تمام ڈیٹا بحال کریں',
+      });
+  String get restoreFromFileOrCodeBtn => _get({
+        'bn': 'ফাইল বা কোড থেকে রিস্টোর',
+        'en': 'Restore from File or Code',
+        'ar': 'استعادة من ملف أو رمز',
+        'ur': 'فائل یا کوڈ سے بحال کریں',
+      });
+  String get orRestoreWithCodeBtn => _get({
+        'bn': 'অথবা ব্যাকআপ কোড দিয়ে সরাসরি রিস্টোর করুন',
+        'en': 'Or restore directly using backup code',
+        'ar': 'أو الاستعادة مباشرة باستخدام رمز النسخ',
+        'ur': 'یا بیک اپ کوڈ کے ذریعے براہ راست بحال کریں',
+      });
+  String get enterYourGmail => _get({
+        'bn': 'আপনার জিমেইল লিখুন:',
+        'en': 'Enter your Gmail:',
+        'ar': 'أدخل بريدك الإلكتروني (جيميل):',
+        'ur': 'اپنا جی میل لکھیں:',
+      });
+  String get loginBtn => _get({
+        'bn': 'লগইন করুন',
+        'en': 'Login',
+        'ar': 'تسجيل الدخول',
+        'ur': 'لاگ ان کریں',
+      });
+  String get confirmLogoutTitle => _get({
+        'bn': 'লগআউট করতে চান?',
+        'en': 'Do you want to logout?',
+        'ar': 'هل تريد تسجيل الخروج؟',
+        'ur': 'کیا آپ لاگ آؤٹ کرنا چاہتے ہیں؟',
+      });
+  String get confirmLogoutDesc => _get({
+        'bn': 'লগআউট করলে ডিভাইসের সমস্ত ব্যক্তিগত ডাটা সরিয়ে নেওয়া হবে। পুনরায় এই জিমেইল দিয়ে লগইন করলে আপনার সব ডাটা আবার ফিরে আসবে।',
+        'en': 'Logging out will remove personal notes and routines from this device. Logging in again with this Gmail will restore everything.',
+        'ar': 'سيؤدي تسجيل الخروج إلى مسح الملاحظات والجدول من هذا الجهاز. تسجيل الدخول مجدداً بنفس الجيميل سيعيد كل بياناتك.',
+        'ur': 'لاگ آؤٹ کرنے سے اس ڈیوائس سے ذاتی نوٹس اور شیڈول ہٹ جائیں گے۔ دوبارہ اسی جی میل سے لاگ ان کرنے پر سب کچھ واپس آ جائے گا۔',
+      });
+  String get yesLogout => _get({
+        'bn': 'হ্যাঁ, লগআউট করুন',
+        'en': 'Yes, Logout',
+        'ar': 'نعم، تسجيل الخروج',
+        'ur': 'ہاں، لاگ آؤٹ کریں',
+      });
+  String get restoreModalTitle => _get({
+        'bn': 'ফাইল বা কোড থেকে রিস্টোর',
+        'en': 'Restore from File or Code',
+        'ar': 'استعادة من ملف أو كود',
+        'ur': 'فائل یا کوڈ سے بحالی',
+      });
+  String get pasteBackupCodeHint => _get({
+        'bn': 'আপনার পূর্বের ব্যাকআপ টেক্সট বা JSON কোড নিচে পেস্ট করুন:',
+        'en': 'Paste your previous backup text or JSON code below:',
+        'ar': 'الصق نص النسخة الاحتياطية أو رمز JSON أدناه:',
+        'ur': 'اپنا سابقہ بیک اپ ٹیکسٹ یا JSON کوڈ نیچے پیسٹ کریں:',
+      });
+  String get pasteHerePlaceholder => _get({
+        'bn': 'এখানে ব্যাকআপ কোড বা টেক্সট পেস্ট করুন...',
+        'en': 'Paste backup code or text here...',
+        'ar': 'الصق رمز النسخ الاحتياطي هنا...',
+        'ur': 'یہاں بیک اپ کوڈ یا ٹیکسٹ پیسٹ کریں...',
+      });
+  String get restoreActionBtn => _get({
+        'bn': 'রিস্টোর করুন',
+        'en': 'Restore',
+        'ar': 'استعادة',
+        'ur': 'بحال کریں',
+      });
+  String get restoreSuccessMsg => _get({
+        'bn': 'সফলভাবে রিস্টোর হয়েছে!',
+        'en': 'Successfully restored!',
+        'ar': 'تمت الاستعادة بنجاح!',
+        'ur': 'کامیابی سے بحال ہو گیا!',
+      });
+  String get backupSuccessMsg => _get({
+        'bn': 'আপনার সমস্ত নোট ক্লাউডে সফলভাবে সংরক্ষিত হয়েছে এবং জিমেইলে পাঠানো হয়েছে!',
+        'en': 'All your notes have been saved to the cloud and sent to Gmail!',
+        'ar': 'تم حفظ كافة ملاحظاتك بنجاح في السحاب وإرسالها إلى الجيميل!',
+        'ur': 'آپ کے تمام نوٹس کلاؤڈ میں محفوظ کر لیے گئے اور جی میل پر بھیج دیے گئے!',
+      });
+  String get invalidEmailMsg => _get({
+        'bn': 'অনুগ্রহ করে সঠিক জিমেইল অ্যাড্রেস লিখুন!',
+        'en': 'Please enter a valid Gmail address!',
+        'ar': 'يرجى إدخال عنوان بريد جيميل صحيح!',
+        'ur': 'براہ کرم درست جی میل ایڈریس درج کریں!',
+      });
+  String get logoutSuccessMsg => _get({
+        'bn': 'লগআউট সম্পন্ন হয়েছে। ডিভাইস থেকে সব ডাটা সরিয়ে নেওয়া হয়েছে।',
+        'en': 'Logged out. All personal data removed from this device.',
+        'ar': 'تم تسجيل الخروج بنجاح وتم مسح البيانات من الجهاز.',
+        'ur': 'لاگ آؤٹ مکمل ہو گیا۔ تمام ذاتی ڈیٹا ڈیوائس سے ہٹا دیا گیا۔',
+      });
+  String get restoreErrorMsg => _get({
+        'bn': 'রিস্টোর করতে সমস্যা হয়েছে',
+        'en': 'Failed to restore',
+        'ar': 'تعذرت الاستعادة',
+        'ur': 'بحال کرنے میں خرابی',
+      });
+  String get backupErrorMsg => _get({
+        'bn': 'ব্যাকআপ পাঠাতে সমস্যা হয়েছে',
+        'en': 'Failed to send backup',
+        'ar': 'تعذر إرسال النسخة الاحتياطية',
+        'ur': 'بیک اپ بھیجنے میں خرابی',
+      });
+
+  // Settings: Teacher Backup Card
+  String get teacherBackupSectionHeader => _get({
+        'bn': 'ব্যক্তিগত ব্যাকআপ ও জিমেইল',
+        'en': 'Personal Backup & Gmail',
+        'ar': 'النسخ الاحتياطي الشخصي والجيميل',
+        'ur': 'ذاتی بیک اپ اور جی میل',
+      });
+  String get teacherBackupCardTitle => _get({
+        'bn': 'ওস্তাদদের ব্যক্তিগত ব্যাকআপ ও জিমেইল',
+        'en': "Teacher's Personal Backup & Gmail",
+        'ar': 'النسخ الاحتياطي الشخصي للمعلمين',
+        'ur': 'اساتذہ کا ذاتی بیک اپ اور جی میل',
+      });
+  String get teacherBackupCardSubtitle => _get({
+        'bn': 'জিমেইল সেট করুন, নোটস ও রুটিন ব্যাকআপ নিন ও রিস্টোর করুন',
+        'en': 'Set Gmail, backup & restore personal notes and routine',
+        'ar': 'تعيين الجيميل، والنسخ الاحتياطي واستعادة الملاحظات والجدول',
+        'ur': 'جی میل سیٹ کریں، نوٹس اور شیڈول کا بیک اپ اور بحالی',
+      });
+
+  // Settings: Admin WhatsApp Field
+  String get adminWhatsAppNumberLabel => _get({
+        'bn': 'অ্যাডমিন হোয়াটসঅ্যাপ নাম্বার',
+        'en': 'Admin WhatsApp Number',
+        'ar': 'رقم واتساب المشرف',
+        'ur': 'ایڈمن واٹس ایپ نمبر',
+      });
+  String get adminWhatsAppNumberHint => _get({
+        'bn': 'যেমন +88017xxxxxxxx',
+        'en': 'e.g. +88017xxxxxxxx',
+        'ar': 'مثال: +88017xxxxxxxx',
+        'ur': 'مثلاً: +88017xxxxxxxx',
+      });
+  String get adminWhatsAppSavedSuccess => _get({
+        'bn': 'অ্যাডমিন হোয়াটসঅ্যাপ নাম্বার সফলভাবে সংরক্ষিত হয়েছে!',
+        'en': 'Admin WhatsApp number saved successfully!',
+        'ar': 'تم حفظ رقم واتساب المشرف بنجاح!',
+        'ur': 'ایڈمن واٹس ایپ نمبر کامیابی سے محفوظ ہو گیا!',
+      });
+  String get saved => _get({
+        'bn': 'সেভ হয়েছে',
+        'en': 'Saved',
+        'ar': 'تم الحفظ',
+        'ur': 'محفوظ ہو گیا',
+      });
+  String get notes => _get({
+        'bn': 'নোট',
+        'en': 'Notes',
+        'ar': 'ملاحظات',
+        'ur': 'نوٹس',
+      });
+  String get routine => _get({
+        'bn': 'রুটিন',
+        'en': 'Routine',
+        'ar': 'روتين',
+        'ur': 'روٹین',
+      });
+
+  // Teacher Notes Page
+  String get personalNotesTitle => _get({
+        'bn': 'ব্যক্তিগত নোটসমূহ',
+        'en': 'Personal Notes',
+        'ar': 'الملاحظات الشخصية',
+        'ur': 'ذاتی نوٹس',
+      });
+  String get restorePreviousBackup => _get({
+        'bn': 'পূর্বের ব্যাকআপ রিস্টোর করুন',
+        'en': 'Restore Previous Backup',
+        'ar': 'استعادة النسخة الاحتياطية السابقة',
+        'ur': 'سابقہ بیک اپ بحال کریں',
+      });
+  String get shareAsPdf => _get({
+        'bn': 'PDF আকারে শেয়ার',
+        'en': 'Share as PDF',
+        'ar': 'مشاركة كـ PDF',
+        'ur': 'پی ڈی ایف شیئر کریں',
+      });
+  String get printNote => _get({
+        'bn': 'প্রিন্ট করুন',
+        'en': 'Print',
+        'ar': 'طباعة',
+        'ur': 'پرنٹ کریں',
+      });
+  String get shareAsText => _get({
+        'bn': 'সাজানো টেক্সট শেয়ার',
+        'en': 'Share as Formatted Text',
+        'ar': 'مشاركة كنص منسق',
+        'ur': 'متن کی شکل میں شیئر کریں',
+      });
+  String get editNote => _get({
+        'bn': 'নোট এডিট',
+        'en': 'Edit Note',
+        'ar': 'تعديل الملاحظة',
+        'ur': 'نوٹ میں ترمیم کریں',
+      });
+  String get voiceLanguage => _get({
+        'bn': 'ভয়েস ভাষা',
+        'en': 'Voice Language',
+        'ar': 'لغة الصوت',
+        'ur': 'آواز کی زبان',
+      });
+  String get shareAction => _get({
+        'bn': 'শেয়ার করুন',
+        'en': 'Share',
+        'ar': 'مشاركة',
+        'ur': 'شیئر کریں',
+      });
+  String get fontSizeSmall => _get({
+        'bn': 'ছোট',
+        'en': 'Small',
+        'ar': 'صغير',
+        'ur': 'چھوٹا',
+      });
+  String get fontSizeNormal => _get({
+        'bn': 'স্বাভাবিক',
+        'en': 'Normal',
+        'ar': 'عادي',
+        'ur': 'عام',
+      });
+  String get fontSizeMedium => _get({
+        'bn': 'মাঝারি',
+        'en': 'Medium',
+        'ar': 'متوسط',
+        'ur': 'درمیانہ',
+      });
+  String get fontSizeLarge => _get({
+        'bn': 'বড়',
+        'en': 'Large',
+        'ar': 'كبير',
+        'ur': 'بڑا',
+      });
+  String get fontSizeHuge => _get({
+        'bn': 'অনেক বড়',
+        'en': 'Huge',
+        'ar': 'كبير جداً',
+        'ur': 'بہت بڑا',
+      });
+  String get fontSizeReset => _get({
+        'bn': 'রিসেট',
+        'en': 'Reset',
+        'ar': 'إعادة ضبط',
+        'ur': 'ری سیٹ',
+      });
+  String get no => _get({
+        'bn': 'না',
+        'en': 'No',
+        'ar': 'لا',
+        'ur': 'نہیں',
+      });
+  String get yes => _get({
+        'bn': 'হ্যাঁ',
+        'en': 'Yes',
+        'ar': 'نعم',
+        'ur': 'ہاں',
+      });
+  String get pleaseLoginFirst => _get({
+        'bn': 'প্রথমে আপনার জিমেইল দিয়ে লগইন করুন।',
+        'en': 'Please login with your Gmail first.',
+        'ar': 'يرجى تسجيل الدخول بحساب جيميل أولاً.',
+        'ur': 'پہلے اپنے جی میل سے لاگ ان کریں۔',
+      });
+  String get loginSuccessMsg => _get({
+        'bn': 'জিমেইল সফলভাবে লগইন হয়েছে! নোট লিখলে স্বয়ংক্রিয়ভাবে ক্লাউডে ব্যাকআপ থাকবে।',
+        'en': 'Gmail logged in successfully! Notes will be automatically backed up.',
+        'ar': 'تم تسجيل الدخول بنجاح! سيتم حفظ الملاحظات تلقائياً.',
+        'ur': 'جی میل کامیابی سے لاگ ان ہو گیا! نوٹس خودکار طور پر بیک اپ ہو جائیں گے۔',
+      });
+  String get loginSuccessCloudMsg => _get({
+        'bn': 'লগইন সফল! ক্লাউড থেকে আপনার পূর্বের সব ডাটা চলে এসেছে।',
+        'en': 'Login successful! All your data has been restored from the cloud.',
+        'ar': 'تم تسجيل الدخول بنجاح! تمت استعادة كافة بياناتك من السحاب.',
+        'ur': 'لاگ ان کامیاب! کلاؤڈ سے آپ کا تمام ڈیٹا بحال ہو گیا ہے۔',
+      });
+  String get loginErrorMsg => _get({
+        'bn': 'লগইন করতে সমস্যা হয়েছে',
+        'en': 'Failed to login',
+        'ar': 'تعذر تسجيل الدخول',
+        'ur': 'لاگ ان کرنے میں خرابی',
+      });
+  String get allPreviousDataRestored => _get({
+        'bn': 'আপনার আগের সব ডাটা চলে এসেছে!',
+        'en': 'All your previous data has been restored!',
+        'ar': 'تمت استعادة كافة بياناتك السابقة بنجاح!',
+        'ur': 'آپ کا تمام سابقہ ڈیٹا بحال کر دیا گیا ہے!',
+      });
 
   // Helper
   String _get(Map<String, String> values) {

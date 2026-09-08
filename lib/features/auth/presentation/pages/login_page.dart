@@ -99,11 +99,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   Image.asset(
                     logoAsset,
-                    height: 84,
+                    height: 96,
                     fit: BoxFit.contain,
                     filterQuality: FilterQuality.high,
                   ).animate().scale(delay: 200.ms, duration: 600.ms),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   ShaderMask(
                     shaderCallback: (bounds) => LinearGradient(
                       colors: isDark
@@ -115,7 +115,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     blendMode: BlendMode.srcIn,
                     child: Image.asset(
                       'assets/images/calligraphy.png',
-                      height: 40,
+                      height: 46,
                       fit: BoxFit.contain,
                       filterQuality: FilterQuality.high,
                     ),
@@ -160,12 +160,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               ).animate().fadeIn(delay: 700.ms),
                               const SizedBox(height: 32),
                               MaktabaTextField(
-                                label: 'পিন',
-                                hint: 'যেমন: ৮০৩৩৩৪ বা ফোন নম্বর',
+                                label: 'আইডি',
+                                hint: 'আপনার আইডি বা মোবাইল নাম্বার লিখুন',
                                 controller: _usernameController,
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
-                                    return 'দয়া করে পিন দিন';
+                                    return 'দয়া করে আপনার আইডি বা মোবাইল নাম্বার দিন';
                                   }
                                   return null;
                                 },
@@ -175,8 +175,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   .slideX(begin: -0.1),
                               const SizedBox(height: 20),
                               MaktabaTextField(
-                                label: 'পাসওয়ার্ড',
-                                hint: '••••••••',
+                                label: 'পিন',
+                                hint: 'আপনার ৪ সংখ্যার পিন দিন',
                                 controller: _pinController,
                                 obscureText: _obscurePassword,
                                 suffixIcon: IconButton(
@@ -195,7 +195,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
-                                    return 'দয়া করে পাসওয়ার্ড দিন';
+                                    return 'দয়া করে আপনার ৪ সংখ্যার পিন দিন';
                                   }
                                   return null;
                                 },
@@ -223,7 +223,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
-                                    'পাসওয়ার্ড ভুলে গেছেন?',
+                                    'পিন ভুলে গেছেন?',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,

@@ -61,6 +61,8 @@ class AssetRepository {
       args.addAll([q, q, q, q]);
     }
 
+    conditions.add("name IS NOT NULL AND TRIM(name) != ''");
+
     final whereClause = conditions.isNotEmpty ? conditions.join(' AND ') : null;
 
     final rows = await db.query(

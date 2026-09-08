@@ -121,7 +121,7 @@ class _AddEditUserPageState extends ConsumerState<AddEditUserPage> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 96,
         title: MadrasaAppBarTitle(title: isEdit ? t.editUser : t.addUser),
       ),
       body: Form(

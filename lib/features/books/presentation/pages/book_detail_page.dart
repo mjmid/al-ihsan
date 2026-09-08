@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/madrasa_app_bar_title.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maktaba_ihsan/core/models/transaction_model.dart';
 import 'package:maktaba_ihsan/core/providers/transaction_providers.dart';
@@ -8,7 +7,6 @@ import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/models/book_model.dart';
 import '../../../../core/l10n/app_translations.dart';
-import '../../../../core/widgets/dynamic_font_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/providers/settings_provider.dart';
 import '../widgets/book_status_badge.dart';
@@ -30,52 +28,182 @@ class BookDetailPage extends ConsumerWidget {
     final t = ref.watch(translationProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    Color avatarColor;
-    switch (book.status) {
-      case BookStatus.available:
-        avatarColor = Colors.green;
-        break;
-      case BookStatus.lent:
-        avatarColor = Colors.orange;
-        break;
-      case BookStatus.lost:
-        avatarColor = Colors.red;
-        break;
-      case BookStatus.damaged:
-        avatarColor = Colors.grey;
-        break;
-      case BookStatus.referenceOnly:
-        avatarColor = Colors.blue;
-        break;
-    }
+    final isArabic = RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(book.bookName);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            toolbarHeight: 90,
-            expandedHeight: 200,
+            toolbarHeight: 65,
+            expandedHeight: 280,
             pinned: true,
+            backgroundColor: isDark ? const Color(0xFF0D1F17) : const Color(0xFFE8F5E9),
             flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.parallax,
               background: Container(
-                color: avatarColor.withOpacity(0.1),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: avatarColor.withOpacity(0.2),
-                        foregroundColor: avatarColor,
-                        child: Text(
-                          book.bookName.isNotEmpty ? book.bookName[0] : '?',
-                          style: const TextStyle(
-                              fontSize: 32, fontWeight: FontWeight.bold),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isDark
+                        ? const [Color(0xFF063B26), Color(0xFF0A1813)]
+                        : const [Color(0xFFD1FAE5), Color(0xFFF6EFE9)],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // 3D-styled Kitab badge
+                        Container(
+                          width: 58,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isDark
+                                  ? const [Color(0xFF10B981), Color(0xFF047857)]
+                                  : const [Color(0xFF1F9E5C), Color(0xFF065F46)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(8),
+                              bottomRight: Radius.circular(8),
+                              topLeft: Radius.circular(3),
+                              bottomLeft: Radius.circular(3),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(2, 5),
+                              ),
+                            ],
+                          ),
+                          child: Stack(
+                            children: [
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: 6,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.25),
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(3),
+                                      bottomLeft: Radius.circular(3),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Center(
+                                child: Icon(
+                                  Icons.auto_stories_rounded,
+                                  color: Colors.white.withOpacity(0.95),
+                                  size: 32,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      BookStatusBadge(status: book.status),
-                    ],
+                        const SizedBox(height: 12),
+                        // Book Title
+                        Text(
+                          book.bookName,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: isArabic ? 'ArabicMyLotus' : 'BengaliSolaiman',
+                            fontSize: isArabic ? 22 : 19,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            height: 1.25,
+                          ),
+                        ),
+                        if (book.author != null && book.author!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            book.author!,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: isArabic ? 'ArabicMyLotus' : 'BengaliSolaiman',
+                              fontSize: 13.5,
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        // Badges Row
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            BookStatusBadge(status: book.status),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDark ? Colors.white24 : Colors.black12,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.tag, size: 13, color: colorScheme.primary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${t.bookNumber}: ${book.accessionNo}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface.withOpacity(0.9),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (book.shelfNo != null && book.shelfNo!.trim().isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark ? Colors.white24 : Colors.black12,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.shelves, size: 13, color: colorScheme.secondary),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${t.shelfNo}: ${book.shelfNo}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface.withOpacity(0.9),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -114,6 +242,9 @@ class BookDetailPage extends ConsumerWidget {
                           alignRight: RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(book.bookName),
                         ),
                       _buildInfoRow(Icons.person, t.author, book.author ?? ''),
+                      if (book.translator != null && book.translator!.trim().isNotEmpty)
+                        _buildInfoRow(
+                            Icons.translate, t.translatorLabel, book.translator!),
                       if (book.publisher != null && book.publisher!.isNotEmpty)
                         _buildInfoRow(
                             Icons.business, t.publisher, book.publisher!),
@@ -162,10 +293,9 @@ class BookDetailPage extends ConsumerWidget {
                             return txAsync.when(
                               data: (tx) {
                                 if (tx == null) {
-                                  return ListTile(
-                                    leading: const Icon(Icons.info_outline),
-                                    title: MadrasaAppBarTitle(
-                                        title: 'কোনো তথ্য পাওয়া যায়নি'),
+                                  return const ListTile(
+                                    leading: Icon(Icons.info_outline),
+                                    title: Text('কোনো তথ্য পাওয়া যায়নি'),
                                   );
                                 }
                                 return Column(

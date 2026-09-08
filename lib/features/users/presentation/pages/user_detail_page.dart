@@ -60,7 +60,7 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 96,
         title: MadrasaAppBarTitle(title: t.memberProfile),
         actions: [
           Consumer(
@@ -180,7 +180,7 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
                       const SizedBox(height: 4),
                       Text('ID: ${_currentUser.userId}'),
                       if (_currentUser.classJamat?.isNotEmpty == true)
-                        Text('${t.classJamat} ${_currentUser.classJamat}'),
+                        Text('${t.classJamat}: ${_currentUser.classJamat}'),
                       if (_currentUser.phone?.isNotEmpty == true)
                         Text('${t.phone} ${_currentUser.phone}'),
                       const SizedBox(height: 8),

@@ -196,7 +196,7 @@ class _TeacherDashboardPageState extends ConsumerState<TeacherDashboardPage> {
       },
       child: Scaffold(
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 96,
         title: MadrasaAppBarTitle(title: titles[safeIndex]),
         actions: [
           IconButton(

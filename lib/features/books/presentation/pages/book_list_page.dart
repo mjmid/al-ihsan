@@ -243,7 +243,7 @@ class _BookListPageState extends ConsumerState<BookListPage> {
             pinned: true,
             floating: true,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(114),
+              preferredSize: const Size.fromHeight(110),
               child: Container(
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
@@ -258,7 +258,7 @@ class _BookListPageState extends ConsumerState<BookListPage> {
                   children: [
                     // Search Bar
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
                       child: TextField(
                         controller: _searchController,
                         style: TextStyle(

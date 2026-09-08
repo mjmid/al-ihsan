@@ -45,16 +45,95 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
     }
   }
 
-  Future<void> _changeCondition(AssetCondition newCondition) async {
-    final updated = _asset.copyWith(
-      condition: newCondition,
-      lastUpdated: DateTime.now().toUtc(),
+  Future<void> _openChangeLocationDialog(AppTranslations t) async {
+    final controller = TextEditingController(text: _asset.location);
+    final formKey = GlobalKey<FormState>();
+
+    final newLocation = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.edit_location_alt_outlined,
+                  color: Theme.of(ctx).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text('অবস্থান পরিবর্তন করুন'),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_asset.name} এর বর্তমান অবস্থান:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: t.locationLabel,
+                    hintText: 'যেমন: তাকমীলের রুমে, ২য় তলা...',
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'অনুগ্রহ করে অবস্থান লিখুন';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(t.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() == true) {
+                  Navigator.pop(ctx, controller.text.trim());
+                }
+              },
+              child: Text(t.saveBtn),
+            ),
+          ],
+        );
+      },
     );
-    final repo = ref.read(assetRepositoryProvider);
-    await repo.upsertAsset(updated);
-    setState(() => _asset = updated);
-    ref.invalidate(allAssetsProvider);
-    ref.invalidate(assetSummaryCountsProvider);
+
+    if (newLocation != null && newLocation != _asset.location && mounted) {
+      final updated = _asset.copyWith(
+        location: newLocation,
+        lastUpdated: DateTime.now().toUtc(),
+      );
+      final repo = ref.read(assetRepositoryProvider);
+      await repo.upsertAsset(updated);
+      setState(() => _asset = updated);
+      ref.invalidate(allAssetsProvider);
+      ref.invalidate(assetSummaryCountsProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('অবস্থান সফলভাবে পরিবর্তন করা হয়েছে'),
+            backgroundColor: Color(0xFF047857),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _confirmDelete(AppTranslations t) async {
@@ -247,37 +326,56 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
             ),
             const SizedBox(height: 20),
 
-            // Condition Quick Switcher (for Admin)
+            // Quick Location Change Card (for Admin)
             if (widget.isAdmin) ...[
               NeuCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      t.changeCurrentCondition,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.edit_location_alt_outlined,
+                        color: colorScheme.primary,
+                        size: 22,
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _buildStatusButton(
-                          label: t.conditionGood,
-                          condition: AssetCondition.good,
-                          color: Colors.green,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.locationLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _asset.location,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _openChangeLocationDialog(t),
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('অবস্থান পরিবর্তন'),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        const SizedBox(width: 8),
-                        _buildStatusButton(
-                          label: t.conditionRepair,
-                          condition: AssetCondition.repairNeeded,
-                          color: Colors.amber.shade800,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildStatusButton(
-                          label: t.conditionDamaged,
-                          condition: AssetCondition.damaged,
-                          color: Colors.red,
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -307,6 +405,14 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                     icon: Icons.location_on_outlined,
                     label: t.locationLabel,
                     value: _asset.location,
+                    trailing: widget.isAdmin
+                        ? IconButton(
+                            icon: const Icon(Icons.edit_location_alt_outlined, size: 20),
+                            tooltip: 'অবস্থান পরিবর্তন করুন',
+                            onPressed: () => _openChangeLocationDialog(t),
+                          )
+                        : null,
+                    onTap: widget.isAdmin ? () => _openChangeLocationDialog(t) : null,
                   ),
                   _buildDetailRow(
                     icon: Icons.numbers_outlined,
@@ -361,42 +467,15 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
     );
   }
 
-  Widget _buildStatusButton({
-    required String label,
-    required AssetCondition condition,
-    required Color color,
-  }) {
-    final isCurrent = _asset.condition == condition;
-
-    return Expanded(
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          backgroundColor: isCurrent ? color.withOpacity(0.15) : null,
-          side: BorderSide(
-            color: isCurrent ? color : Colors.grey.shade300,
-            width: isCurrent ? 2 : 1,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-        ),
-        onPressed: () => _changeCondition(condition),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-            color: isCurrent ? color : null,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDetailRow({
     required IconData icon,
     required String label,
     required String value,
+    Widget? trailing,
+    VoidCallback? onTap,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
+    final rowContent = Padding(
       padding: const EdgeInsets.only(bottom: 14.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,8 +504,18 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
               ],
             ),
           ),
+          if (trailing != null) trailing,
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: rowContent,
+      );
+    }
+    return rowContent;
   }
 }

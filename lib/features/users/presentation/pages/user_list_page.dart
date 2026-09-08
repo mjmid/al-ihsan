@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/filter_segmented_control.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/user_providers.dart';
@@ -17,7 +16,9 @@ class UserListPage extends ConsumerWidget {
     final usersAsync = ref.watch(usersListProvider);
     final selectedType = ref.watch(userTypeFilterProvider);
     final showInactive = ref.watch(showInactiveUsersProvider);
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return PopScope(
       canPop: !showInactive,
@@ -46,147 +47,101 @@ class UserListPage extends ConsumerWidget {
             pinned: true,
             floating: true,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(130),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: showInactive ? '${t.inactive} ${t.members} ${t.searchHint}' : t.searchHint,
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                      ),
-                      onChanged: (value) {
-                        ref.read(userSearchQueryProvider.notifier).state =
-                            value;
-                      },
+              preferredSize: const Size.fromHeight(104),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: colorScheme.outlineVariant.withOpacity(0.3),
+                      width: 1,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      children: [
-                        if (showInactive) ...[
-                          // Back to active members button
-                          Expanded(
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () {
-                                  ref.read(showInactiveUsersProvider.notifier).state = false;
-                                },
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: colorScheme.primary.withOpacity(0.3),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.arrow_back,
-                                        size: 16,
-                                        color: colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          t.backToActiveMembers,
-                                          style: TextStyle(
-                                            color: colorScheme.primary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 2.0, 16.0, 6.0),
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: showInactive ? '${t.inactive} ${t.members} ${t.searchHint}' : t.searchHint,
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                        ),
+                        onChanged: (value) {
+                          ref.read(userSearchQueryProvider.notifier).state =
+                              value;
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      height: 38,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        children: [
+                          _buildMemberChip(
+                            label: t.all,
+                            isSelected: !showInactive && selectedType == null,
+                            colorScheme: colorScheme,
+                            isDark: isDark,
+                            onTap: () {
+                              if (showInactive) {
+                                ref.read(showInactiveUsersProvider.notifier).state = false;
+                              }
+                              ref.read(userTypeFilterProvider.notifier).state = null;
+                            },
                           ),
                           const SizedBox(width: 8),
-                        ],
-                        // Active type filters
-                        if (!showInactive)
-                          Expanded(
-                            child: FilterSegmentedControl<UserType?>(
-                              items: const [null, ...UserType.values],
-                              selected: selectedType,
-                              labelBuilder: (type) {
-                                if (type == null) return t.all;
-                                return _translateUserType(type, t);
-                              },
-                              onChanged: (type) {
-                                ref.read(userTypeFilterProvider.notifier).state = type;
-                              },
-                            ),
-                          ),
-                        if (!showInactive) const SizedBox(width: 8),
-                        // নিষ্ক্রিয় tab
-                        GestureDetector(
-                          onTap: () {
-                            ref.read(showInactiveUsersProvider.notifier).state =
-                                !showInactive;
-                            // Reset type filter when switching
-                            ref.read(userTypeFilterProvider.notifier).state = null;
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: showInactive
-                                  ? Colors.red.shade700
-                                  : Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: showInactive
-                                    ? Colors.red.shade700
-                                    : Colors.red.withOpacity(0.4),
+                          ...UserType.values.map((type) {
+                            final isSelected = !showInactive && selectedType == type;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: _buildMemberChip(
+                                label: _translateUserType(type, t),
+                                isSelected: isSelected,
+                                colorScheme: colorScheme,
+                                isDark: isDark,
+                                onTap: () {
+                                  if (showInactive) {
+                                    ref.read(showInactiveUsersProvider.notifier).state = false;
+                                  }
+                                  ref.read(userTypeFilterProvider.notifier).state = type;
+                                },
                               ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (showInactive) ...[
-                                  const Icon(Icons.block, size: 14, color: Colors.white),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  t.inactive,
-                                  style: TextStyle(
-                                    color: showInactive
-                                        ? Colors.white
-                                        : Colors.red.shade700,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            );
+                          }),
+                          Container(
+                            height: 20,
+                            width: 1,
+                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            color: colorScheme.outlineVariant.withOpacity(0.4),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          _buildInactiveChip(
+                            label: t.inactive,
+                            isSelected: showInactive,
+                            colorScheme: colorScheme,
+                            isDark: isDark,
+                            onTap: () {
+                              ref.read(showInactiveUsersProvider.notifier).state = !showInactive;
+                              ref.read(userTypeFilterProvider.notifier).state = null;
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                    const SizedBox(height: 6),
+                  ],
+                ),
               ),
             ),
           ),
@@ -232,10 +187,55 @@ class UserListPage extends ConsumerWidget {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final user = users[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: NeuCard(
-                          padding: EdgeInsets.zero,
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (showInactive && index == 0) ...[
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: Colors.red.withOpacity(0.25)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.person_off_outlined,
+                                      size: 18, color: Colors.red.shade700),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      t.inactiveMembersList,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      ref.read(showInactiveUsersProvider.notifier).state = false;
+                                    },
+                                    icon: const Icon(Icons.arrow_back, size: 14),
+                                    label: Text(t.backToActiveMembers),
+                                    style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      foregroundColor: Colors.red.shade800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: NeuCard(
+                              padding: EdgeInsets.zero,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
@@ -370,9 +370,11 @@ class UserListPage extends ConsumerWidget {
                             ),
                           ),
                         ),
-                      );
-                    },
-                    childCount: users.length,
+                      ),
+                    ],
+                  );
+                },
+                childCount: users.length,
                   ),
                 ),
               );
@@ -418,5 +420,137 @@ class UserListPage extends ConsumerWidget {
       case UserType.student:
         return t.student;
     }
+  }
+
+  Widget _buildMemberChip({
+    required String label,
+    required bool isSelected,
+    required ColorScheme colorScheme,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    final primaryColor =
+        isDark ? const Color(0xFF10B981) : const Color(0xFF047857);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? primaryColor
+                : (isDark
+                    ? const Color(0xFF1F2937)
+                    : colorScheme.surfaceContainerHighest.withOpacity(0.6)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected
+                  ? primaryColor
+                  : colorScheme.outlineVariant.withOpacity(0.4),
+              width: 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: primaryColor.withOpacity(0.28),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? Colors.white
+                  : (isDark
+                      ? Colors.grey.shade300
+                      : colorScheme.onSurfaceVariant),
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              fontSize: 12.5,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInactiveChip({
+    required String label,
+    required bool isSelected,
+    required ColorScheme colorScheme,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.red.shade700
+                : (isDark
+                    ? Colors.red.shade900.withOpacity(0.2)
+                    : Colors.red.withOpacity(0.08)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.red.shade700
+                  : Colors.red.withOpacity(0.35),
+              width: 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.red.shade700.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.block,
+                size: 13,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark
+                        ? Colors.redAccent.shade100
+                        : Colors.red.shade700),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark
+                          ? Colors.redAccent.shade100
+                          : Colors.red.shade700),
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  fontSize: 12.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/material.dart' as material;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -57,18 +58,23 @@ class PdfService {
     final pdf = pw.Document();
     final dateFormat = DateFormat('dd/MM/yyyy');
 
+    // Load branding images
+    final logoBytes = (await rootBundle.load('assets/images/logo_light.png')).buffer.asUint8List();
+    final calligBytes = (await rootBundle.load('assets/images/calligraphy_green.png')).buffer.asUint8List();
+    final logoImage = pw.MemoryImage(logoBytes);
+    final calligImage = pw.MemoryImage(calligBytes);
+
     // Pre-render all texts
-    final wHeader = await _buildImageText('মাকতাবাতুল ইহসান', fontSize: 22, bold: true);
-    final wSubHeader = await _buildImageText('লেনদেনের তালিকা - ${user.name}', fontSize: 14);
+    final wSubHeader = await _buildImageText('লেনদেনের তালিকা - ${user.name}', fontSize: 13, bold: true);
     
     final wName = await _buildImageText('নাম: ${user.name}', fontSize: 11);
-    final wId = await _buildImageText('আইডি: ${user.userId}', fontSize: 11);
-    final wClass = await _buildImageText('শ্রেণী/জামাআত: ${user.classJamat ?? ""}', fontSize: 11);
+    final wId = await _buildImageText('সদস্য আইডি: ${user.userId}', fontSize: 11);
+    final wClass = await _buildImageText('শ্রেণী: ${user.classJamat ?? ""}', fontSize: 11);
     final wPhone = await _buildImageText('মোবাইল: ${user.phone ?? ""}', fontSize: 11);
     final wDate = await _buildImageText('তারিখ: ${dateFormat.format(DateTime.now())}', fontSize: 11);
 
-    final wThId = await _buildImageText('আইডি', fontSize: 11, bold: true);
-    final wThBook = await _buildImageText(t.books, fontSize: 11, bold: true);
+    final wThId = await _buildImageText('কিতাব নং', fontSize: 11, bold: true);
+    final wThBook = await _buildImageText('কিতাবের নাম', fontSize: 11, bold: true);
     final wThIssue = await _buildImageText('নেওয়ার তারিখ', fontSize: 11, bold: true);
     final wThReturn = await _buildImageText('ফেরত দেওয়ার তারিখ', fontSize: 11, bold: true);
     final wThStatus = await _buildImageText('অবস্থা', fontSize: 11, bold: true);
@@ -77,16 +83,16 @@ class PdfService {
     final renderedRows = <List<pw.Widget>>[];
     for (var tx in transactions) {
       final isOverdue = tx.isOverdue;
-      String statusText = t.statusIssued;
+      String statusText = 'নেওয়া হয়েছে';
       if (tx.status == TransactionStatus.returned) {
-        statusText = t.statusReturned;
+        statusText = 'ফেরত দেওয়া হয়েছে';
       } else if (isOverdue) {
-        statusText = t.statusOverdue;
+        statusText = 'মেয়াদোত্তীর্ণ';
       }
 
       renderedRows.add([
         await _buildImageText(tx.accessionNo, fontSize: 10),
-        await _buildImageText(tx.bookName ?? t.unknownBook, fontSize: 10),
+        await _buildImageText(tx.bookName ?? 'কিতাব', fontSize: 10),
         await _buildImageText(dateFormat.format(tx.issueDate.toLocal()), fontSize: 10),
         await _buildImageText(tx.actualReturn != null ? dateFormat.format(tx.actualReturn!.toLocal()) : '-', fontSize: 10),
         await _buildImageText(statusText, fontSize: 10),
@@ -99,11 +105,22 @@ class PdfService {
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-            pw.Center(child: wHeader),
+            pw.Center(
+              child: pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Image(logoImage, height: 44, fit: pw.BoxFit.contain),
+                  pw.SizedBox(width: 14),
+                  pw.Image(calligImage, height: 38, fit: pw.BoxFit.contain),
+                ],
+              ),
+            ),
             pw.SizedBox(height: 8),
             pw.Center(child: wSubHeader),
             pw.SizedBox(height: 8),
-            pw.Divider(thickness: 2),
+            pw.Divider(thickness: 1.5),
             pw.SizedBox(height: 16),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,

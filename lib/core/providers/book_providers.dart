@@ -145,7 +145,7 @@ final bookAccessionAnalysisProvider = FutureProvider.autoDispose<BookAccessionAn
 
   for (final book in books) {
     usedNumbers.add(book.accessionNo.trim());
-    final parsed = int.tryParse(book.accessionNo.trim());
+    final parsed = int.tryParse(book.accessionNo.trim().toEnglishNumerals);
     if (parsed != null && parsed > 0) {
       intNumbers.add(parsed);
     }

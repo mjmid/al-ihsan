@@ -239,7 +239,7 @@ function processChange(change) {
   const data = sheet.getDataRange().getValues();
 
   const primaryKeyHeader = headers[0]; 
-  const recordId = recordData[primaryKeyHeader] || recordData['id'] || recordData['accession_no'] || recordData['trx_id'] || recordData['user_id'];
+  const recordId = recordData[primaryKeyHeader] || recordData['id'] || recordData['asset_id'] || recordData['accession_no'] || recordData['trx_id'] || recordData['user_id'];
 
   let rowIndex = -1;
   for (let i = 1; i < data.length; i++) {

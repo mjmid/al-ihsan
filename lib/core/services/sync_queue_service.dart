@@ -243,6 +243,23 @@ class SyncQueueNotifier extends StateNotifier<List<SyncOperation>> {
             mappedPayload['status'] = op.payload['status'];
             mappedPayload['last_updated'] = op.payload['last_updated'];
           }
+        } else if (gasTable == 'Assets') {
+          mappedPayload['asset_id'] = op.payload['asset_id'];
+          mappedPayload['id'] = op.payload['asset_id'];
+          if (op.action == 'upsert') {
+            mappedPayload['name'] = op.payload['name'];
+            mappedPayload['category'] = op.payload['category'];
+            mappedPayload['quantity'] = op.payload['quantity'];
+            mappedPayload['unit'] = op.payload['unit'];
+            mappedPayload['location'] = op.payload['location'];
+            mappedPayload['condition'] = op.payload['condition'];
+            mappedPayload['acquisition_type'] = op.payload['acquisition_type'];
+            mappedPayload['donor_or_source'] = op.payload['donor_or_source'];
+            mappedPayload['cost'] = op.payload['cost'];
+            mappedPayload['purchase_date'] = op.payload['purchase_date'];
+            mappedPayload['remarks'] = op.payload['remarks'];
+            mappedPayload['last_updated'] = op.payload['last_updated'];
+          }
         }
 
         return {
@@ -304,6 +321,8 @@ class SyncQueueNotifier extends StateNotifier<List<SyncOperation>> {
         return 'user_id';
       case 'transactions':
         return 'trx_id';
+      case 'assets':
+        return 'asset_id';
       default:
         // Fallback — we won't deduplicate unknown sheets.
         return 'id';

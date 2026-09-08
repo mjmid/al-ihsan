@@ -41,13 +41,13 @@ class MadrasaAppBar extends ConsumerWidget implements PreferredSizeWidget {
               children: [
                 Image.asset(
                   logoAsset,
-                  height: 42,
+                  height: 46,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
                   errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.school, size: 42, color: colorScheme.primary),
+                      Icon(Icons.school, size: 46, color: colorScheme.primary),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 ShaderMask(
                   shaderCallback: (bounds) => LinearGradient(
                     colors: isDark
@@ -59,31 +59,50 @@ class MadrasaAppBar extends ConsumerWidget implements PreferredSizeWidget {
                   blendMode: BlendMode.srcIn,
                   child: Image.asset(
                     'assets/images/calligraphy.png',
-                    height: 34,
+                    height: 38,
                     fit: BoxFit.contain,
                     filterQuality: FilterQuality.high,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: TextStyle(
-                fontFamily: titleFontFamily,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface.withOpacity(0.85),
-              ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF34D399)
+                        : const Color(0xFF047857),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: titleFontFamily,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: isDark
+                        ? const Color(0xFF6EE7B7)
+                        : const Color(0xFF047857),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         actions: actions,
-        toolbarHeight: 80,
+        toolbarHeight: 96,
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(80.0);
+  Size get preferredSize => const Size.fromHeight(96.0);
 }

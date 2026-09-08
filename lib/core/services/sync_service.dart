@@ -183,11 +183,35 @@ class SyncService {
         _log('Assets raw type: ${rawAssets.runtimeType}');
         final assetsList = _toList(rawAssets);
         if (assetsList.isNotEmpty) {
-          final localAssets =
-              assetsList.map((r) => _mapAssetsRow(_toMap(r))).toList();
-          await _dbHelper.batchUpsert(kAssetsTable, localAssets, 'asset_id');
-          totalSynced += localAssets.length;
-          _log('Upserted ${localAssets.length} assets');
+          final localAssets = assetsList
+              .map((r) => _mapAssetsRow(_toMap(r)))
+              .where((a) =>
+                  a['asset_id'] != null &&
+                  a['asset_id'].toString().trim().isNotEmpty &&
+                  a['name'] != null &&
+                  a['name'].toString().trim().isNotEmpty)
+              .toList();
+
+          final db = await _dbHelper.database;
+          await db.execute(
+              "DELETE FROM $kAssetsTable WHERE name IS NULL OR TRIM(name) = '';");
+
+          final remoteIds =
+              localAssets.map((e) => "'${e['asset_id']}'").join(',');
+          if (remoteIds.isNotEmpty) {
+            final oneHourAgo = DateTime.now()
+                .subtract(const Duration(hours: 1))
+                .toIso8601String();
+            await db.execute(
+                'DELETE FROM $kAssetsTable WHERE asset_id NOT IN ($remoteIds) AND last_updated < ?',
+                [oneHourAgo]);
+          }
+
+          if (localAssets.isNotEmpty) {
+            await _dbHelper.batchUpsert(kAssetsTable, localAssets, 'asset_id');
+            totalSynced += localAssets.length;
+            _log('Upserted ${localAssets.length} assets');
+          }
         }
       }
 

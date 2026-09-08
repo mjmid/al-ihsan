@@ -214,7 +214,7 @@ class _AddEditTransactionPageState
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 96,
         title: MadrasaAppBarTitle(
             title: isEdit ? t.editTransaction : t.addTransaction),
         actions: [
