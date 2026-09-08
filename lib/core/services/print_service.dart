@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart' show rootBundle;
@@ -853,12 +854,12 @@ class PrintService {
 
     final noteTitle = note.title.trim();
     final noteTitleWidget = noteTitle.isNotEmpty
-        ? await _buildImageText(noteTitle, fontSize: 16, bold: true, maxWidth: 531)
+        ? await _buildImageText(noteTitle, fontSize: 16, bold: true, maxWidth: 516)
         : null;
 
     pw.Widget? bookWidget;
     if (note.linkedBookAccessionNo != null && note.linkedBookAccessionNo!.isNotEmpty) {
-      bookWidget = await _buildImageText('সম্পর্কিত কিতাব নং: ${note.linkedBookAccessionNo}', fontSize: 9.5, color: material.Colors.teal.shade800, maxWidth: 531);
+      bookWidget = await _buildImageText('সম্পর্কিত কিতাব নং: ${note.linkedBookAccessionNo}', fontSize: 9.5, color: material.Colors.teal.shade800, maxWidth: 516);
     }
 
     final parsedLines = _parseNoteContent(note.content);
@@ -867,46 +868,51 @@ class PrintService {
     for (final rawLine in parsedLines) {
       final subLines = _splitLongLine(rawLine);
       for (final line in subLines) {
-        final w = await _buildRichImageText(line, baseFontSize: 11.0, maxWidth: 531);
+        final w = await _buildRichImageText(line, baseFontSize: 11.0, maxWidth: 516);
         paragraphWidgets.add(w);
       }
     }
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.only(
-          left: 32,
-          top: 28,
-          right: 32,
-          bottom: 24,
-        ),
-        build: (pw.Context context) {
-          return [
-            _buildHeader(logoImage, calligImage, titleHeaderColumn),
-            if (noteTitleWidget != null) ...[
-              noteTitleWidget,
+    Future<Uint8List> generatePdf(PdfPageFormat targetFormat) async {
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: targetFormat,
+          margin: const pw.EdgeInsets.only(
+            left: 32,
+            top: 28,
+            right: 32,
+            bottom: 28,
+          ),
+          build: (pw.Context context) {
+            return [
+              _buildHeader(logoImage, calligImage, titleHeaderColumn),
+              if (noteTitleWidget != null) ...[
+                noteTitleWidget,
+                pw.SizedBox(height: 6),
+              ],
+              if (bookWidget != null) ...[
+                bookWidget,
+                pw.SizedBox(height: 8),
+              ],
               pw.SizedBox(height: 6),
-            ],
-            if (bookWidget != null) ...[
-              bookWidget,
-              pw.SizedBox(height: 8),
-            ],
-            pw.SizedBox(height: 6),
-            ...paragraphWidgets,
-          ];
-        },
-      ),
-    );
+              ...paragraphWidgets,
+            ];
+          },
+        ),
+      );
+      return pdf.save();
+    }
 
     final filename = '${noteTitle.replaceAll(RegExp(r'[^\w\s\u0980-\u09FF]'), '_')}.pdf';
     if (isShare) {
-      await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
+      final bytes = await generatePdf(PdfPageFormat.letter);
+      await Printing.sharePdf(bytes: bytes, filename: filename);
     } else {
       await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save(),
+        onLayout: (PdfPageFormat format) async => generatePdf(format),
         name: filename,
-        format: PdfPageFormat.a4,
+        format: PdfPageFormat.letter,
       );
     }
   }

@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maktaba_ihsan/core/models/hive_models/teacher_note.dart';
 import 'package:maktaba_ihsan/core/services/teacher_backup_service.dart';
 import 'package:maktaba_ihsan/features/teacher/presentation/pages/teacher_note_editor_page.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 void main() {
   group('TeacherNote & Content Parsing Tests', () {
@@ -99,6 +101,39 @@ void main() {
       expect(parseSize('24 pt'), equals(24.0));
       expect(parseSize('32pt'), equals(32.0));
       expect(parseSize('0'), isNull);
+    });
+  });
+
+  group('PDF MultiPage Pagination Tests', () {
+    test('MultiPage layout does not overflow pageFormat height', () async {
+      final pdf = pw.Document();
+      final widgets = <pw.Widget>[];
+
+      for (int i = 1; i <= 60; i++) {
+        widgets.add(
+          pw.Container(
+            margin: const pw.EdgeInsets.only(bottom: 4),
+            height: 18,
+            child: pw.Text('Line $i: বল বীর – বল উন্নত মম শির!'),
+          ),
+        );
+      }
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.letter,
+          margin: const pw.EdgeInsets.only(
+            left: 32,
+            top: 28,
+            right: 32,
+            bottom: 28,
+          ),
+          build: (pw.Context context) => widgets,
+        ),
+      );
+
+      final bytes = await pdf.save();
+      expect(bytes.length, greaterThan(1000));
     });
   });
 }
