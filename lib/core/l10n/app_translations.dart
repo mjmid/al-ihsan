@@ -284,7 +284,7 @@ class AppTranslations {
   String get bookStatusAvailable => _get({'bn': 'উপলব্ধ', 'en': 'Available', 'ar': 'متاح', 'ur': 'دستیاب'});
   String get bookStatusIssued => _get({'bn': 'ইস্যু করা হয়েছে', 'en': 'Issued', 'ar': 'مُصدر', 'ur': 'جاری کردہ'});
   String get bookStatusLost => _get({'bn': 'হারানো', 'en': 'Lost', 'ar': 'مفقود', 'ur': 'گم شدہ'});
-  String get category => _get({'bn': 'বিভাগ', 'en': 'Category', 'ar': 'الفئة', 'ur': 'زمرہ'});
+  String get category => _get({'bn': 'বিষয়', 'en': 'Category', 'ar': 'الفئة', 'ur': 'زمرہ'});
   String get classRoutine => _get({'bn': 'ক্লাস রুটিন', 'en': 'Class Routine', 'ar': 'روتين الفصل', 'ur': 'کلاس روٹین'});
   String get condition => _get({'bn': 'অবস্থা', 'en': 'Condition', 'ar': 'الحالة', 'ur': 'حالت'});
   String get currentCondition => _get({'bn': 'বর্তমান অবস্থা', 'en': 'Current Condition', 'ar': 'الحالة الحالية', 'ur': 'موجودہ حالت'});
@@ -336,7 +336,7 @@ class AppTranslations {
   String get allShelves => _get({'bn': 'সব শেলফ', 'en': 'All Shelves', 'ar': 'جميع الرفوف', 'ur': 'تمام شیلف'});
   String get selectAuthor => _get({'bn': 'লেখক নির্বাচন করুন', 'en': 'Select Author', 'ar': 'اختر المؤلف', 'ur': 'مصنف منتخب کریں'});
   String get selectPublisher => _get({'bn': 'প্রকাশক/মাকতাবা নির্বাচন করুন', 'en': 'Select Publisher', 'ar': 'اختر دار النشر', 'ur': 'ناشر منتخب کریں'});
-  String get selectCategory => _get({'bn': 'বিষয়/বিভাগ নির্বাচন করুন', 'en': 'Select Category', 'ar': 'اختر الفئة', 'ur': 'زمرہ منتخب کریں'});
+  String get selectCategory => _get({'bn': 'বিষয় নির্বাচন করুন', 'en': 'Select Category', 'ar': 'اختر الفئة', 'ur': 'زمرہ منتخب کریں'});
   String get selectShelf => _get({'bn': 'শেলফ নির্বাচন করুন', 'en': 'Select Shelf', 'ar': 'اختر الرف', 'ur': 'شیلف منتخب کریں'});
   String get clearFilters => _get({'bn': 'ফিল্টার মুছুন', 'en': 'Clear Filters', 'ar': 'إزالة الفلاتর', 'ur': 'فلٹرز ختم کریں'});
   String get filterLabel => _get({'bn': 'ফিল্টার', 'en': 'Filter', 'ar': 'تصفية', 'ur': 'فلٹر'});
@@ -387,7 +387,7 @@ class AppTranslations {
   String get noAssetsToPrint => _get({'bn': 'প্রিন্ট করার মতো কোনো মালামাল নেই', 'en': 'No assets to print', 'ar': 'لا توجد مقتنيات للطباعة', 'ur': 'پرنٹ کرنے کے لیے کوئی سامان نہیں'});
 
   String get edit => _get({'bn': 'এডিট করুন', 'en': 'Edit', 'ar': 'تعديل', 'ur': 'ترمیم کریں'});
-  String get categoryLabel => _get({'bn': 'বিভাগ / ক্যাটাগরি', 'en': 'Category', 'ar': 'القسم / الفئة', 'ur': 'شعبہ / زمرہ'});
+  String get categoryLabel => _get({'bn': 'বিষয়', 'en': 'Category', 'ar': 'القسم / الفئة', 'ur': 'شعبہ / زمرہ'});
   String get piecesUnit => _get({'bn': 'টি', 'en': 'pcs', 'ar': 'قطعة', 'ur': 'عدد'});
   String get totalAssets => _get({'bn': 'মোট মালামাল', 'en': 'Total Assets', 'ar': 'إجمالي المقتنيات', 'ur': 'کل سامان'});
   String get itemsCountUnit => _get({'bn': 'পদ', 'en': 'items', 'ar': 'بند', 'ur': 'اقسام'});

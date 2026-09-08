@@ -11,6 +11,7 @@ import 'package:maktaba_ihsan/features/teacher/presentation/pages/teacher_shelf_
 import 'package:maktaba_ihsan/features/teacher/presentation/pages/teacher_routine_page.dart';
 import 'package:maktaba_ihsan/features/teacher/presentation/pages/teacher_notes_page.dart';
 import 'package:maktaba_ihsan/features/assets/presentation/pages/asset_list_page.dart';
+import 'package:maktaba_ihsan/core/providers/book_providers.dart';
 
 class TeacherDashboardPage extends ConsumerStatefulWidget {
   const TeacherDashboardPage({super.key});
@@ -215,6 +216,7 @@ class _TeacherDashboardPageState extends ConsumerState<TeacherDashboardPage> {
                       final syncService =
                           await ref.read(syncServiceProvider.future);
                       await syncService.syncAll();
+                      refreshAllBookProviders(ref);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

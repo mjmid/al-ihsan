@@ -175,3 +175,16 @@ final bookAccessionAnalysisProvider = FutureProvider.autoDispose<BookAccessionAn
     usedNumbers: usedNumbers,
   );
 });
+
+/// Invalidates all book, category, shelf, author, and related counts providers
+/// so that the latest synced data is immediately re-read from SQLite.
+void refreshAllBookProviders(dynamic ref) {
+  ref.invalidate(bookSearchResultsProvider);
+  ref.invalidate(bookCategoryCountsProvider);
+  ref.invalidate(bookCategoriesProvider);
+  ref.invalidate(bookAuthorCountsProvider);
+  ref.invalidate(bookPublisherCountsProvider);
+  ref.invalidate(bookShelfCountsProvider);
+  ref.invalidate(bookStatusCountsProvider);
+  ref.invalidate(bookAccessionAnalysisProvider);
+}

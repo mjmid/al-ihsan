@@ -55,11 +55,9 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       final result = await syncService.syncAll();
 
       // Force refresh UI
-      final currentQuery = ref.read(bookSearchQueryProvider);
-      ref.read(bookSearchQueryProvider.notifier).state = '__refresh__';
-      await Future.delayed(const Duration(milliseconds: 50));
-      ref.read(bookSearchQueryProvider.notifier).state = currentQuery;
+      refreshAllBookProviders(ref);
       ref.invalidate(usersListProvider);
+      ref.invalidate(transactionsListProvider);
 
       if (mounted) {
         if (result.isSuccess) {

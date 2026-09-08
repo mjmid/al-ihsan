@@ -4,6 +4,7 @@ import '../../../../core/models/book_model.dart';
 import '../../../../core/providers/book_providers.dart';
 import '../../../../core/providers/settings_provider.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/providers.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import '../widgets/book_status_badge.dart';
@@ -26,12 +27,62 @@ class BookListPage extends ConsumerStatefulWidget {
 
 class _BookListPageState extends ConsumerState<BookListPage> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isSyncing = false;
 
   @override
   void initState() {
     super.initState();
     final currentQuery = ref.read(bookSearchQueryProvider);
     _searchController.text = currentQuery;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndTriggerSync(force: false);
+    });
+  }
+
+  Future<void> _checkAndTriggerSync({bool force = false}) async {
+    if (_isSyncing) return;
+    try {
+      final categoryCounts = ref.read(bookCategoryCountsProvider).valueOrNull;
+      // Auto-sync if counts are empty, or if explicitly requested by user
+      if (force || categoryCounts == null || categoryCounts.isEmpty) {
+        if (mounted) setState(() => _isSyncing = true);
+        final syncService = await ref.read(syncServiceProvider.future);
+        final result = await syncService.syncAll();
+        refreshAllBookProviders(ref);
+        if (mounted && force) {
+          if (result.isSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('বই ও বিষয়সমূহ আপডেট হয়েছে (${result.totalSynced} টি রেকর্ড)'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result.error ?? 'সিঙ্ক সম্পন্ন করা যায়নি'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted && force) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('সিঙ্ক ত্রুটি: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
   }
 
   @override
@@ -236,63 +287,86 @@ class _BookListPageState extends ConsumerState<BookListPage> {
               child: const Icon(Icons.add),
             )
           : null,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            toolbarHeight: 0,
-            pinned: true,
-            floating: true,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(110),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: colorScheme.outlineVariant.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Search Bar
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
-                      child: TextField(
-                        controller: _searchController,
-                        style: TextStyle(
-                          fontFamily: appFontFamily,
-                          fontFamilyFallback: fontFallback,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: t.searchHint,
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, size: 20),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    ref.read(bookSearchQueryProvider.notifier).state = '';
-                                    setState(() {});
-                                  },
-                                )
-                              : null,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: colorScheme.surfaceContainerHighest,
-                        ),
-                        onChanged: (value) {
-                          ref.read(bookSearchQueryProvider.notifier).state = value;
-                          setState(() {});
-                        },
+      body: RefreshIndicator(
+        onRefresh: () => _checkAndTriggerSync(force: true),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              toolbarHeight: 0,
+              pinned: true,
+              floating: true,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(110),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: colorScheme.outlineVariant.withOpacity(0.3),
+                        width: 1,
                       ),
                     ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Search Bar & Sync Button
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                style: TextStyle(
+                                  fontFamily: appFontFamily,
+                                  fontFamilyFallback: fontFallback,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: t.searchHint,
+                                  prefixIcon: const Icon(Icons.search_rounded),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear_rounded, size: 20),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            ref.read(bookSearchQueryProvider.notifier).state = '';
+                                            setState(() {});
+                                          },
+                                        )
+                                      : null,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  filled: true,
+                                  fillColor: colorScheme.surfaceContainerHighest,
+                                ),
+                                onChanged: (value) {
+                                  ref.read(bookSearchQueryProvider.notifier).state = value;
+                                  setState(() {});
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton.filledTonal(
+                              tooltip: 'গুগল শীট থেকে রিলোড করুন',
+                              icon: _isSyncing
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.sync_rounded),
+                              onPressed: _isSyncing
+                                  ? null
+                                  : () => _checkAndTriggerSync(force: true),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     // Faceted Filter Chips Carousel
                     SingleChildScrollView(
@@ -609,8 +683,9 @@ class _BookListPageState extends ConsumerState<BookListPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _FilterChipButton extends StatelessWidget {

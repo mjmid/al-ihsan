@@ -25,6 +25,7 @@ class _NoteSpan {
   final bool italic;
   final double? fontSize;
   final material.Color? color;
+  final String? fontFamily;
 
   _NoteSpan({
     required this.text,
@@ -32,6 +33,7 @@ class _NoteSpan {
     this.italic = false,
     this.fontSize,
     this.color,
+    this.fontFamily,
   });
 }
 
@@ -212,7 +214,7 @@ class PrintService {
     final hNo = await _buildImageText('কিতাব নং', fontSize: 10, bold: true, alignment: pw.Alignment.center);
     final hName = await _buildImageText('কিতাবের নাম', fontSize: 10, bold: true, alignment: pw.Alignment.centerLeft);
     final hAuthor = await _buildImageText('লেখক', fontSize: 10, bold: true, alignment: pw.Alignment.centerLeft);
-    final hCat = await _buildImageText('বিষয় / বিভাগ', fontSize: 10, bold: true, alignment: pw.Alignment.centerLeft);
+    final hCat = await _buildImageText('বিষয়', fontSize: 10, bold: true, alignment: pw.Alignment.centerLeft);
     final hStatus = await _buildImageText('অবস্থা', fontSize: 10, bold: true, alignment: pw.Alignment.center);
 
     final headerRow = pw.TableRow(
@@ -577,6 +579,8 @@ class PrintService {
         }
       }
 
+      final fontFamily = attrs?['font']?.toString();
+
       final parts = insert.split('\n');
       for (int i = 0; i < parts.length; i++) {
         final textPart = parts[i];
@@ -587,6 +591,7 @@ class PrintService {
             italic: isItalic,
             fontSize: fontSize,
             color: color,
+            fontFamily: fontFamily,
           ));
         }
 
@@ -651,6 +656,7 @@ class PrintService {
               italic: span.italic,
               fontSize: span.fontSize,
               color: span.color,
+              fontFamily: span.fontFamily,
             ));
             chunks.add(_NoteLine(
               spans: List.from(currentSpans),
@@ -673,6 +679,7 @@ class PrintService {
             italic: span.italic,
             fontSize: span.fontSize,
             color: span.color,
+            fontFamily: span.fontFamily,
           ));
           currentLen += subText.length;
         }
@@ -738,7 +745,9 @@ class PrintService {
       if (isArabic || isUrdu) lineHasArabic = true;
 
       String fontToUse = 'BengaliSolaiman';
-      if (isUrdu) {
+      if (span.fontFamily != null && span.fontFamily!.isNotEmpty) {
+        fontToUse = span.fontFamily!;
+      } else if (isUrdu) {
         fontToUse = 'UrduNastaleeq';
       } else if (isArabic) {
         fontToUse = 'ArabicMyLotus';
@@ -844,12 +853,12 @@ class PrintService {
 
     final noteTitle = note.title.trim();
     final noteTitleWidget = noteTitle.isNotEmpty
-        ? await _buildImageText(noteTitle, fontSize: 16, bold: true, maxWidth: 516)
+        ? await _buildImageText(noteTitle, fontSize: 16, bold: true, maxWidth: 531)
         : null;
 
     pw.Widget? bookWidget;
     if (note.linkedBookAccessionNo != null && note.linkedBookAccessionNo!.isNotEmpty) {
-      bookWidget = await _buildImageText('সম্পর্কিত কিতাব নং: ${note.linkedBookAccessionNo}', fontSize: 9.5, color: material.Colors.teal.shade800, maxWidth: 516);
+      bookWidget = await _buildImageText('সম্পর্কিত কিতাব নং: ${note.linkedBookAccessionNo}', fontSize: 9.5, color: material.Colors.teal.shade800, maxWidth: 531);
     }
 
     final parsedLines = _parseNoteContent(note.content);
@@ -858,7 +867,7 @@ class PrintService {
     for (final rawLine in parsedLines) {
       final subLines = _splitLongLine(rawLine);
       for (final line in subLines) {
-        final w = await _buildRichImageText(line, baseFontSize: 11.0, maxWidth: 516);
+        final w = await _buildRichImageText(line, baseFontSize: 11.0, maxWidth: 531);
         paragraphWidgets.add(w);
       }
     }
@@ -867,10 +876,10 @@ class PrintService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.only(
-          left: 36,
-          top: 36,
-          right: 36,
-          bottom: 86,
+          left: 32,
+          top: 28,
+          right: 32,
+          bottom: 24,
         ),
         build: (pw.Context context) {
           return [

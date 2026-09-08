@@ -80,6 +80,17 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
     super.dispose();
   }
 
+  String? _getFontForLocale(String localeId) {
+    if (localeId.startsWith('ar')) {
+      return 'ArabicMyLotus';
+    } else if (localeId.startsWith('ur')) {
+      return 'UrduNastaleeq';
+    } else if (localeId.startsWith('bn')) {
+      return 'BengaliSolaiman';
+    }
+    return null;
+  }
+
   void _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
@@ -129,10 +140,30 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
                 _titleController.text = text.substring(0, pos) + textToInsert + text.substring(pos);
                 _titleController.selection = TextSelection.collapsed(offset: pos + textToInsert.length);
               } else {
-                final int pos = _quillController.selection.baseOffset;
-                final index = pos >= 0 ? pos : _quillController.document.length - 1;
+                final selection = _quillController.selection;
+                final index = selection.baseOffset >= 0
+                    ? selection.start
+                    : _quillController.document.length - 1;
+                final length = selection.end - selection.start;
+                if (length > 0) {
+                  _quillController.document.delete(index, length);
+                }
                 _quillController.document.insert(index, textToInsert);
-                _quillController.updateSelection(TextSelection.collapsed(offset: index + textToInsert.length), quill.ChangeSource.local);
+                final font = _getFontForLocale(_selectedLocaleId);
+                if (font != null) {
+                  _quillController.formatText(
+                    index,
+                    textToInsert.length,
+                    quill.Attribute.fromKeyValue(quill.Attribute.font.key, font),
+                  );
+                  _quillController.formatSelection(
+                    quill.Attribute.fromKeyValue(quill.Attribute.font.key, font),
+                  );
+                }
+                _quillController.updateSelection(
+                  TextSelection.collapsed(offset: index + textToInsert.length),
+                  quill.ChangeSource.local,
+                );
               }
             }
           }),
@@ -295,6 +326,12 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
                 if (_isListening) {
                   _speech.stop();
                   _isListening = false;
+                }
+                final font = _getFontForLocale(val);
+                if (font != null) {
+                  _quillController.formatSelection(
+                    quill.Attribute.fromKeyValue(quill.Attribute.font.key, font),
+                  );
                 }
               });
             },

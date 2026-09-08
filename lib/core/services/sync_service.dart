@@ -77,6 +77,8 @@ class SyncResult {
         errors: errors,
       );
 
+  String? get error => errors.values.isNotEmpty ? errors.values.join(', ') : null;
+
   @override
   String toString() => 'SyncResult(success: $isSuccess, offline: $isOffline, '
       'synced: $totalSynced, errors: $errors)';
@@ -257,19 +259,19 @@ class SyncService {
 
   /// Maps a remote Books row to local column names.
   Map<String, dynamic> _mapBooksRow(Map<String, dynamic> r) => {
-        'accession_no': r['accession_no']?.toString() ?? '',
-        'book_name': r['book_name']?.toString() ?? '',
-        'volume_no': r['volume_no']?.toString() ?? '',
-        'author': r['author']?.toString() ?? '',
-        'translator': r['translator']?.toString() ?? '',
-        'publisher': r['publisher']?.toString() ?? '',
-        'address': r['address']?.toString() ?? '',
-        'subject_category': r['subject_category']?.toString() ?? '',
-        'shelf_no': r['shelf_no']?.toString() ?? '',
+        'accession_no': r['accession_no']?.toString().trim() ?? '',
+        'book_name': r['book_name']?.toString().trim() ?? '',
+        'volume_no': r['volume_no']?.toString().trim() ?? '',
+        'author': r['author']?.toString().trim() ?? '',
+        'translator': r['translator']?.toString().trim() ?? '',
+        'publisher': r['publisher']?.toString().trim() ?? '',
+        'address': r['address']?.toString().trim() ?? '',
+        'subject_category': r['subject_category']?.toString().trim() ?? '',
+        'shelf_no': r['shelf_no']?.toString().trim() ?? '',
         'status': (r['status']?.toString().trim().isEmpty ?? true)
             ? 'Available'
             : r['status'].toString().trim(),
-        'remarks': r['remarks']?.toString() ?? '',
+        'remarks': r['remarks']?.toString().trim() ?? '',
         'last_updated': r['last_updated']?.toString() ?? '',
       };
 

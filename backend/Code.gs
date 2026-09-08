@@ -291,6 +291,27 @@ function logSync(tableName, operation, recordId) {
         recordId,
         new Date().toISOString()
       ]);
+
+      // Auto-cleanup: Keep only latest 100 rows to prevent spreadsheet bloating
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 105) {
+        sheet.deleteRows(2, lastRow - 101);
+      }
     }
   } catch(e) {}
+}
+
+/**
+ * Utility function to immediately clear all rows from SyncLog (keeping only header row).
+ * Can be executed manually from Google Apps Script or run on demand.
+ */
+function clearSyncLog() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.SYNC_LOG);
+  if (sheet) {
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.deleteRows(2, lastRow - 1);
+    }
+  }
 }

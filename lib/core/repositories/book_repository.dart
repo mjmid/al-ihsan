@@ -197,15 +197,15 @@ class BookRepository {
 
     final rows = await db.rawQuery(
       '''
-      SELECT DISTINCT subject_category
+      SELECT DISTINCT TRIM(subject_category) AS subject_category
       FROM   $kBooksTable
-      WHERE  subject_category IS NOT NULL AND subject_category != ''
+      WHERE  subject_category IS NOT NULL AND TRIM(subject_category) != ''
       ORDER  BY subject_category ASC
       ''',
     );
 
     return rows
-        .map((r) => r['subject_category'] as String)
+        .map((r) => (r['subject_category'] as String).trim())
         .where((c) => c.isNotEmpty)
         .toList();
   }
@@ -217,15 +217,15 @@ class BookRepository {
 
     final rows = await db.rawQuery(
       '''
-      SELECT DISTINCT shelf_no
+      SELECT DISTINCT TRIM(shelf_no) AS shelf_no
       FROM   $kBooksTable
-      WHERE  shelf_no IS NOT NULL AND shelf_no != ''
+      WHERE  shelf_no IS NOT NULL AND TRIM(shelf_no) != ''
       ORDER  BY shelf_no ASC
       ''',
     );
 
     return rows
-        .map((r) => r['shelf_no'] as String)
+        .map((r) => (r['shelf_no'] as String).trim())
         .where((s) => s.isNotEmpty)
         .toList();
   }
@@ -234,13 +234,13 @@ class BookRepository {
   Future<List<String>> getAllAuthors() async {
     final db = await _db.database;
     final rows = await db.rawQuery('''
-      SELECT DISTINCT author
+      SELECT DISTINCT TRIM(author) AS author
       FROM   $kBooksTable
-      WHERE  author IS NOT NULL AND author != ''
+      WHERE  author IS NOT NULL AND TRIM(author) != ''
       ORDER  BY author ASC
     ''');
     return rows
-        .map((r) => r['author'] as String)
+        .map((r) => (r['author'] as String).trim())
         .where((a) => a.isNotEmpty)
         .toList();
   }
@@ -249,10 +249,10 @@ class BookRepository {
   Future<Map<String, int>> getAuthorCounts() async {
     final db = await _db.database;
     final rows = await db.rawQuery('''
-      SELECT author, COUNT(*) AS count
+      SELECT TRIM(author) AS author, COUNT(*) AS count
       FROM   $kBooksTable
-      WHERE  author IS NOT NULL AND author != ''
-      GROUP  BY author
+      WHERE  author IS NOT NULL AND TRIM(author) != ''
+      GROUP  BY TRIM(author)
       ORDER  BY count DESC, author ASC
     ''');
     return {
@@ -265,13 +265,13 @@ class BookRepository {
   Future<List<String>> getAllPublishers() async {
     final db = await _db.database;
     final rows = await db.rawQuery('''
-      SELECT DISTINCT publisher
+      SELECT DISTINCT TRIM(publisher) AS publisher
       FROM   $kBooksTable
-      WHERE  publisher IS NOT NULL AND publisher != ''
+      WHERE  publisher IS NOT NULL AND TRIM(publisher) != ''
       ORDER  BY publisher ASC
     ''');
     return rows
-        .map((r) => r['publisher'] as String)
+        .map((r) => (r['publisher'] as String).trim())
         .where((p) => p.isNotEmpty)
         .toList();
   }
@@ -280,10 +280,10 @@ class BookRepository {
   Future<Map<String, int>> getPublisherCounts() async {
     final db = await _db.database;
     final rows = await db.rawQuery('''
-      SELECT publisher, COUNT(*) AS count
+      SELECT TRIM(publisher) AS publisher, COUNT(*) AS count
       FROM   $kBooksTable
-      WHERE  publisher IS NOT NULL AND publisher != ''
-      GROUP  BY publisher
+      WHERE  publisher IS NOT NULL AND TRIM(publisher) != ''
+      GROUP  BY TRIM(publisher)
       ORDER  BY count DESC, publisher ASC
     ''');
     return {
@@ -296,10 +296,10 @@ class BookRepository {
   Future<Map<String, int>> getCategoryCounts() async {
     final db = await _db.database;
     final rows = await db.rawQuery('''
-      SELECT subject_category, COUNT(*) AS count
+      SELECT TRIM(subject_category) AS subject_category, COUNT(*) AS count
       FROM   $kBooksTable
-      WHERE  subject_category IS NOT NULL AND subject_category != ''
-      GROUP  BY subject_category
+      WHERE  subject_category IS NOT NULL AND TRIM(subject_category) != ''
+      GROUP  BY TRIM(subject_category)
       ORDER  BY count DESC, subject_category ASC
     ''');
     return {
@@ -312,10 +312,10 @@ class BookRepository {
   Future<Map<String, int>> getShelfCounts() async {
     final db = await _db.database;
     final rows = await db.rawQuery('''
-      SELECT shelf_no, COUNT(*) AS count
+      SELECT TRIM(shelf_no) AS shelf_no, COUNT(*) AS count
       FROM   $kBooksTable
-      WHERE  shelf_no IS NOT NULL AND shelf_no != ''
-      GROUP  BY shelf_no
+      WHERE  shelf_no IS NOT NULL AND TRIM(shelf_no) != ''
+      GROUP  BY TRIM(shelf_no)
       ORDER  BY shelf_no ASC
     ''');
     return {
