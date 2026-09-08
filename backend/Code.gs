@@ -110,7 +110,20 @@ function doGet(e) {
       return buildSuccessResponse({ message: "Maktaba API is online." });
     }
 
+    if (action === "trim_synclog") {
+      trimSyncLog(20);
+      return buildSuccessResponse({ message: "SyncLog trimmed to 20 rows." });
+    }
+
+    if (action === "clear_synclog") {
+      clearSyncLog();
+      return buildSuccessResponse({ message: "SyncLog cleared." });
+    }
+
     if (action === "pull") {
+      // Auto-trim SyncLog on pull as well
+      trimSyncLog(20);
+
       const lastSyncedAtMs = (params.last_synced_at && params.last_synced_at.trim() !== '')
         ? new Date(params.last_synced_at).getTime()
         : 0;
@@ -292,13 +305,37 @@ function logSync(tableName, operation, recordId) {
         new Date().toISOString()
       ]);
 
-      // Auto-cleanup: Keep only latest 100 rows to prevent spreadsheet bloating
-      const lastRow = sheet.getLastRow();
-      if (lastRow > 105) {
-        sheet.deleteRows(2, lastRow - 101);
-      }
+      // Auto-cleanup: Always keep only the latest 20 rows
+      trimSyncLog(20);
     }
   } catch(e) {}
+}
+
+/**
+ * Trims SyncLog sheet so that only the latest `keepCount` (default: 20) data rows remain.
+ * Deletes all older rows automatically.
+ */
+function trimSyncLog(keepCount) {
+  try {
+    const limit = keepCount || 20;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAMES.SYNC_LOG);
+    if (!sheet) return;
+    const lastRow = sheet.getLastRow();
+    // Header is row 1. Data rows start at row 2.
+    // If total rows exceed (limit + 1), delete older rows from the top (row 2 onwards)
+    if (lastRow > limit + 1) {
+      sheet.deleteRows(2, lastRow - (limit + 1));
+    }
+  } catch(e) {}
+}
+
+/**
+ * Quick runnable function in Google Apps Script Editor:
+ * Run this function once from the editor to immediately cut SyncLog down to 20 rows!
+ */
+function trimSyncLogTo20() {
+  trimSyncLog(20);
 }
 
 /**
