@@ -41,10 +41,6 @@ dependencies:
   # â”€â”€ Internationalization (Multi-Language) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   intl: any                   # Date formatting + i18n base
 
-  # â”€â”€ Icons & Assets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  flutter_svg: ^2.0.10+1          # SVG icon support
-  hugeicons: ^0.0.7               # Premium icon pack
-
   # â”€â”€ Utils & Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   uuid: ^4.4.0                    # UUID generation for IDs (offline-safe)
   shared_preferences: ^2.2.3      # Simple key-value (last sync timestamp)
@@ -82,7 +78,10 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
+    - assets/images/logo_light.png
+    - assets/images/logo_dark.png
+    - assets/images/calligraphy.png
+    - assets/images/calligraphy_green.png
 
   fonts:
     - family: EkusheyBelycon
