@@ -505,13 +505,10 @@ class PrintService {
   }
 
   static String _translateTxStatus(LibraryTransaction tx) {
-    if (tx.status == TransactionStatus.returned) {
-      return 'ফেরত দেওয়া হয়েছে';
+    if (tx.status == TransactionStatus.returned || tx.actualReturn != null) {
+      return 'ফেরত প্রাপ্ত';
     }
-    if (tx.isOverdue) {
-      return 'মেয়াদোত্তীর্ণ';
-    }
-    return 'নেওয়া হয়েছে';
+    return 'অধ্যয়নাধীন';
   }
 
   static List<_NoteLine> _parseNoteContent(String content) {

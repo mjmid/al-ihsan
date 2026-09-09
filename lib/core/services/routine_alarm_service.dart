@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -14,10 +15,24 @@ class RoutineAlarmService {
 
   static bool _isInitialized = false;
 
-  static const String channelId = 'routine_alarm_channel_v2';
+  static const String channelId = 'routine_alarm_channel_v4';
   static const String channelName = 'ক্লাস রুটিন ও রিমাইন্ডার';
   static const String channelDesc =
       'মাদরাসার ক্লাস ও মুতালায়া রিমাইন্ডারের জন্য অ্যালার্ম ও নোটিফিকেশন';
+
+  // 6.6 seconds pattern: 1s vibrate, 400ms pause x 5 times (matches routine_alarm sound duration)
+  static final Int64List _alarmVibrationPattern = Int64List.fromList([
+    0,
+    1000,
+    400,
+    1000,
+    400,
+    1000,
+    400,
+    1000,
+    400,
+    1000,
+  ]);
 
   /// Initialize local notifications and timezone
   static Future<void> initialize() async {
@@ -55,14 +70,17 @@ class RoutineAlarmService {
             AndroidFlutterLocalNotificationsPlugin>();
 
         if (androidPlugin != null) {
-          const androidChannel = AndroidNotificationChannel(
+          final androidChannel = AndroidNotificationChannel(
             channelId,
             channelName,
             description: channelDesc,
             importance: Importance.max,
             playSound: true,
+            sound: const RawResourceAndroidNotificationSound('routine_alarm'),
             enableVibration: true,
+            vibrationPattern: _alarmVibrationPattern,
             enableLights: true,
+            audioAttributesUsage: AudioAttributesUsage.alarm,
           );
 
           await androidPlugin.createNotificationChannel(androidChannel);
@@ -148,7 +166,9 @@ class RoutineAlarmService {
                 importance: Importance.max,
                 priority: Priority.high,
                 playSound: true,
+                sound: const RawResourceAndroidNotificationSound('routine_alarm'),
                 enableVibration: true,
+                vibrationPattern: _alarmVibrationPattern,
                 fullScreenIntent: true,
                 category: AndroidNotificationCategory.alarm,
                 audioAttributesUsage: AudioAttributesUsage.alarm,
@@ -191,7 +211,9 @@ class RoutineAlarmService {
                 importance: Importance.max,
                 priority: Priority.high,
                 playSound: true,
+                sound: const RawResourceAndroidNotificationSound('routine_alarm'),
                 enableVibration: true,
+                vibrationPattern: _alarmVibrationPattern,
                 fullScreenIntent: true,
                 category: AndroidNotificationCategory.alarm,
                 audioAttributesUsage: AudioAttributesUsage.alarm,

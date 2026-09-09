@@ -27,6 +27,8 @@ class BookListPage extends ConsumerStatefulWidget {
 
 class _BookListPageState extends ConsumerState<BookListPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchOpen = false;
   bool _isSyncing = false;
 
   @override
@@ -34,6 +36,9 @@ class _BookListPageState extends ConsumerState<BookListPage> {
     super.initState();
     final currentQuery = ref.read(bookSearchQueryProvider);
     _searchController.text = currentQuery;
+    if (currentQuery.isNotEmpty) {
+      _isSearchOpen = true;
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndTriggerSync(force: false);
@@ -88,6 +93,7 @@ class _BookListPageState extends ConsumerState<BookListPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -282,7 +288,11 @@ class _BookListPageState extends ConsumerState<BookListPage> {
                   MaterialPageRoute(
                     builder: (context) => const AddEditBookPage(),
                   ),
-                );
+                ).then((_) {
+                  ref.invalidate(bookSearchResultsProvider);
+                  ref.invalidate(bookCategoryCountsProvider);
+                  ref.invalidate(bookCategoriesProvider);
+                });
               },
               child: const Icon(Icons.add),
             )
@@ -297,7 +307,7 @@ class _BookListPageState extends ConsumerState<BookListPage> {
               pinned: true,
               floating: true,
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(110),
+                preferredSize: Size.fromHeight(_isSearchOpen ? 104 : 52),
                 child: Container(
                   decoration: BoxDecoration(
                     color: colorScheme.surface,
@@ -309,75 +319,167 @@ class _BookListPageState extends ConsumerState<BookListPage> {
                     ),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Search Bar & Sync Button
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                style: TextStyle(
+                      // Expandable Search Bar (Revealed when search icon is clicked)
+                      if (_isSearchOpen)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: colorScheme.primary.withOpacity(0.4),
+                                width: 1.2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withOpacity(0.06),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              focusNode: _searchFocusNode,
+                              autofocus: true,
+                              style: TextStyle(
+                                fontFamily: appFontFamily,
+                                fontFamilyFallback: fontFallback,
+                                fontSize: 14,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: t.searchHint,
+                                hintStyle: TextStyle(
+                                  color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                  fontSize: 13,
                                   fontFamily: appFontFamily,
                                   fontFamilyFallback: fontFallback,
                                 ),
-                                decoration: InputDecoration(
-                                  hintText: t.searchHint,
-                                  prefixIcon: const Icon(Icons.search_rounded),
-                                  suffixIcon: _searchController.text.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.clear_rounded, size: 20),
-                                          onPressed: () {
+                                prefixIcon: Icon(Icons.search_rounded,
+                                    color: colorScheme.primary, size: 20),
+                                suffixIcon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_searchController.text.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(Icons.clear_rounded, size: 18),
+                                        tooltip: 'মুছে ফেলুন',
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          ref.read(bookSearchQueryProvider.notifier).state = '';
+                                          setState(() {});
+                                        },
+                                      ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close_rounded, size: 20),
+                                      tooltip: 'বন্ধ করুন',
+                                      onPressed: () {
+                                        setState(() {
+                                          _isSearchOpen = false;
+                                          _searchFocusNode.unfocus();
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
+                                border: InputBorder.none,
+                              ),
+                              onChanged: (value) {
+                                ref.read(bookSearchQueryProvider.notifier).state = value;
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                        ),
+
+                      // Faceted Filter Chips Carousel with Search Icon on the left
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        child: Row(
+                          children: [
+                            // 0. Search Icon Button placed directly to the left of 'লেখক'
+                            InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () {
+                                setState(() {
+                                  _isSearchOpen = !_isSearchOpen;
+                                  if (_isSearchOpen) {
+                                    _searchFocusNode.requestFocus();
+                                  } else {
+                                    _searchFocusNode.unfocus();
+                                  }
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: (_isSearchOpen || _searchController.text.isNotEmpty)
+                                      ? colorScheme.primary
+                                      : colorScheme.surfaceContainerHighest.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: (_isSearchOpen || _searchController.text.isNotEmpty)
+                                        ? colorScheme.primary
+                                        : colorScheme.outlineVariant.withOpacity(0.4),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.search_rounded,
+                                      size: 16,
+                                      color: (_isSearchOpen || _searchController.text.isNotEmpty)
+                                          ? colorScheme.onPrimary
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
+                                    if (_searchController.text.isNotEmpty && !_isSearchOpen) ...[
+                                      const SizedBox(width: 4),
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(maxWidth: 80),
+                                        child: Text(
+                                          _searchController.text,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onPrimary,
+                                            fontFamily: appFontFamily,
+                                            fontFamilyFallback: fontFallback,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
                                             _searchController.clear();
                                             ref.read(bookSearchQueryProvider.notifier).state = '';
-                                            setState(() {});
-                                          },
-                                        )
-                                      : null,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: colorScheme.surfaceContainerHighest,
+                                          });
+                                        },
+                                        child: Icon(Icons.close_rounded,
+                                            size: 14, color: colorScheme.onPrimary),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                                onChanged: (value) {
-                                  ref.read(bookSearchQueryProvider.notifier).state = value;
-                                  setState(() {});
-                                },
                               ),
                             ),
                             const SizedBox(width: 8),
-                            IconButton.filledTonal(
-                              tooltip: 'গুগল শীট থেকে রিলোড করুন',
-                              icon: _isSyncing
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.sync_rounded),
-                              onPressed: _isSyncing
-                                  ? null
-                                  : () => _checkAndTriggerSync(force: true),
-                            ),
-                          ],
-                        ),
-                      ),
 
-                    // Faceted Filter Chips Carousel
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      child: Row(
-                        children: [
-                          // 1. Author Filter Chip
-                          _FilterChipButton(
-                            icon: Icons.person_outline_rounded,
-                            activeIcon: Icons.person_rounded,
+                            // 1. Author Filter Chip
+                            _FilterChipButton(
+                              icon: Icons.person_outline_rounded,
+                              activeIcon: Icons.person_rounded,
                             label: selectedAuthor == null
                                 ? '${t.author} ▾'
                                 : '${t.author}: $selectedAuthor',

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/models/book_model.dart';
 import '../../../../../core/providers/providers.dart';
 import '../../../../../core/providers/book_providers.dart';
+import '../../../../../core/providers/settings_provider.dart';
 import '../../../../../core/l10n/app_translations.dart';
 
 // Assuming MaktabaTextField exists, otherwise a standard TextFormField is used
@@ -182,6 +183,14 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
           }
         }
 
+        ref.invalidate(bookCategoryCountsProvider);
+        ref.invalidate(bookCategoriesProvider);
+        ref.invalidate(bookSearchResultsProvider);
+        ref.invalidate(bookAuthorCountsProvider);
+        ref.invalidate(bookPublisherCountsProvider);
+        ref.invalidate(bookShelfCountsProvider);
+        ref.invalidate(bookStatusCountsProvider);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('কিতাব সফলভাবে সংরক্ষণ করা হয়েছে')),
@@ -205,6 +214,44 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
     final isEdit = widget.book != null;
     final t = ref.watch(translationProvider);
     final colorScheme = Theme.of(context).colorScheme;
+
+    final settings = ref.watch(appSettingsProvider);
+    final locale = settings.locale.languageCode;
+    final String appFontFamily = locale == 'ar'
+        ? 'ArabicMyLotus'
+        : (locale == 'ur' ? 'UrduNastaleeq' : 'BengaliSolaiman');
+    final List<String> fontFallback = locale == 'ar'
+        ? const ['BengaliSolaiman', 'UrduNastaleeq']
+        : (locale == 'ur'
+            ? const ['ArabicMyLotus', 'BengaliSolaiman']
+            : const ['ArabicMyLotus', 'UrduNastaleeq']);
+
+    final categoryCountsAsync = ref.watch(bookCategoryCountsProvider);
+    final categoryCounts = categoryCountsAsync.valueOrNull ?? {};
+    final dbCategories = categoryCounts.keys.toList();
+
+    // Dynamically combine all categories: DB categories (sorted by frequency) + defaults + current value
+    final allCategories = <String>[];
+    final seen = <String>{};
+
+    for (final cat in dbCategories) {
+      final trimmed = cat.trim();
+      if (trimmed.isNotEmpty && seen.add(trimmed)) {
+        allCategories.add(trimmed);
+      }
+    }
+
+    for (final preset in _categoryPresets) {
+      final trimmed = preset.trim();
+      if (trimmed.isNotEmpty && seen.add(trimmed)) {
+        allCategories.add(trimmed);
+      }
+    }
+
+    if (_categoryController.text.trim().isNotEmpty &&
+        seen.add(_categoryController.text.trim())) {
+      allCategories.add(_categoryController.text.trim());
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -476,9 +523,9 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
               initialValue: TextEditingValue(text: _categoryController.text),
               optionsBuilder: (TextEditingValue textEditingValue) {
                 if (textEditingValue.text.isEmpty) {
-                  return _categoryPresets;
+                  return allCategories;
                 }
-                return _categoryPresets.where((String option) {
+                return allCategories.where((String option) {
                   return option
                       .toLowerCase()
                       .contains(textEditingValue.text.toLowerCase());
@@ -486,6 +533,78 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
               },
               onSelected: (String selection) {
                 _categoryController.text = selection;
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(12),
+                    color: Theme.of(context).colorScheme.surface,
+                    surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: 280,
+                        maxWidth: MediaQuery.of(context).size.width - 32,
+                      ),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final option = options.elementAt(index);
+                          final count = categoryCounts[option];
+                          return InkWell(
+                            onTap: () => onSelected(option),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.category_outlined,
+                                      size: 18, color: Colors.grey),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      option,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontFamily: appFontFamily,
+                                        fontFamilyFallback: fontFallback,
+                                      ),
+                                    ),
+                                  ),
+                                  if (count != null && count > 0)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        '$countটি বই',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          fontFamily: appFontFamily,
+                                          fontFamilyFallback: fontFallback,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
               },
               fieldViewBuilder: (context, textEditingController, focusNode,
                   onFieldSubmitted) {
@@ -497,13 +616,27 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
                 return TextFormField(
                   controller: textEditingController,
                   focusNode: focusNode,
+                  style: TextStyle(
+                    fontFamily: appFontFamily,
+                    fontFamilyFallback: fontFallback,
+                  ),
                   decoration: InputDecoration(
                     labelText: t.category,
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.arrow_drop_down),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.arrow_drop_down, size: 28),
+                      tooltip: 'সকল বিষয় দেখুন',
+                      onPressed: () => _openCategoryPicker(
+                        allCategories: allCategories,
+                        categoryCounts: categoryCounts,
+                        textEditingController: textEditingController,
+                        appFontFamily: appFontFamily,
+                        fontFamilyFallback: fontFallback,
+                      ),
+                    ),
                   ),
                   validator: (value) =>
-                      value == null || value.isEmpty ? t.required : null,
+                      value == null || value.trim().isEmpty ? t.required : null,
                 );
               },
             ),
@@ -619,6 +752,274 @@ class _AddEditBookPageState extends ConsumerState<AddEditBookPage> {
             child: Text(t.saveBtn, style: TextStyle(fontSize: 16)),
           ),
         ),
+      ),
+    );
+  }
+
+  void _openCategoryPicker({
+    required List<String> allCategories,
+    required Map<String, int> categoryCounts,
+    required TextEditingController textEditingController,
+    required String appFontFamily,
+    required List<String> fontFamilyFallback,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _CategoryPickerSheet(
+        allCategories: allCategories,
+        categoryCounts: categoryCounts,
+        selectedCategory: _categoryController.text.trim(),
+        appFontFamily: appFontFamily,
+        fontFamilyFallback: fontFamilyFallback,
+        onSelected: (cat) {
+          textEditingController.text = cat;
+          _categoryController.text = cat;
+          setState(() {});
+        },
+      ),
+    );
+  }
+}
+
+class _CategoryPickerSheet extends StatefulWidget {
+  final List<String> allCategories;
+  final Map<String, int> categoryCounts;
+  final String selectedCategory;
+  final ValueChanged<String> onSelected;
+  final String appFontFamily;
+  final List<String> fontFamilyFallback;
+
+  const _CategoryPickerSheet({
+    required this.allCategories,
+    required this.categoryCounts,
+    required this.selectedCategory,
+    required this.onSelected,
+    required this.appFontFamily,
+    required this.fontFamilyFallback,
+  });
+
+  @override
+  State<_CategoryPickerSheet> createState() => _CategoryPickerSheetState();
+}
+
+class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final filtered = widget.allCategories.where((c) {
+      if (_searchQuery.isEmpty) return true;
+      return c.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    final isCustomQuery = _searchQuery.trim().isNotEmpty &&
+        !widget.allCategories.any((c) =>
+            c.trim().toLowerCase() == _searchQuery.trim().toLowerCase());
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              children: [
+                const Icon(Icons.category_rounded, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'বিষয় নির্বাচন করুন',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: widget.appFontFamily,
+                      fontFamilyFallback: widget.fontFamilyFallback,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Search Field
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: TextField(
+              controller: _searchController,
+              autofocus: false,
+              style: TextStyle(
+                fontFamily: widget.appFontFamily,
+                fontFamilyFallback: widget.fontFamilyFallback,
+              ),
+              decoration: InputDecoration(
+                hintText: 'খুঁজুন বা নতুন বিষয় লিখুন...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val.trim()),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Add custom new subject button
+          if (isCustomQuery)
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  widget.onSelected(_searchQuery.trim());
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border:
+                        Border.all(color: colorScheme.primary.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_circle_outline_rounded,
+                          color: colorScheme.primary, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'নতুন বিষয়: "${_searchQuery.trim()}" যুক্ত করুন',
+                          style: TextStyle(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: widget.appFontFamily,
+                            fontFamilyFallback: widget.fontFamilyFallback,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 4),
+
+          // Category items list
+          Expanded(
+            child: ListView.separated(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              itemCount: filtered.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final cat = filtered[index];
+                final count = widget.categoryCounts[cat] ?? 0;
+                final isSelected =
+                    cat.trim() == widget.selectedCategory.trim();
+
+                return ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  tileColor: isSelected
+                      ? colorScheme.primaryContainer.withOpacity(0.3)
+                      : null,
+                  leading: Icon(
+                    isSelected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: isSelected ? colorScheme.primary : null,
+                  ),
+                  title: Text(
+                    cat,
+                    style: TextStyle(
+                      fontFamily: widget.appFontFamily,
+                      fontFamilyFallback: widget.fontFamilyFallback,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected ? colorScheme.primary : null,
+                    ),
+                  ),
+                  trailing: count > 0
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? colorScheme.primary
+                                : colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.normal,
+                              color: isSelected
+                                  ? colorScheme.onPrimary
+                                  : colorScheme.onSurfaceVariant,
+                              fontFamily: widget.appFontFamily,
+                              fontFamilyFallback: widget.fontFamilyFallback,
+                            ),
+                          ),
+                        )
+                      : null,
+                  onTap: () {
+                    widget.onSelected(cat);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

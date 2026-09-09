@@ -25,10 +25,23 @@ class AssetListPage extends ConsumerStatefulWidget {
 
 class _AssetListPageState extends ConsumerState<AssetListPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final query = ref.read(assetSearchQueryProvider);
+    _searchController.text = query;
+    if (query.isNotEmpty) {
+      _isSearchOpen = true;
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -82,70 +95,189 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
               pinned: true,
               floating: true,
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(62),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 7.0,
+                preferredSize: Size.fromHeight(_isSearchOpen ? 104 : 52),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: colorScheme.outlineVariant.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
                   ),
-                  child: Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Search TextField
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: t.searchAssetsHint,
-                            prefixIcon: const Icon(Icons.search, size: 20),
-                            suffixIcon: searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      ref
-                                          .read(assetSearchQueryProvider.notifier)
-                                          .state = '';
-                                    },
-                                  )
-                                : null,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 11,
-                            ),
-                            border: OutlineInputBorder(
+                      // Expandable Search Bar (when opened)
+                      if (_isSearchOpen)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16.0, 6.0, 16.0, 6.0),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
                               borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
+                              border: Border.all(
+                                color: colorScheme.primary.withOpacity(0.4),
+                                width: 1.2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withOpacity(0.06),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest,
+                            child: TextField(
+                              controller: _searchController,
+                              focusNode: _searchFocusNode,
+                              autofocus: true,
+                              decoration: InputDecoration(
+                                hintText: t.searchAssetsHint,
+                                prefixIcon: Icon(Icons.search_rounded,
+                                    color: colorScheme.primary, size: 20),
+                                suffixIcon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (searchQuery.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(Icons.clear_rounded, size: 18),
+                                        tooltip: 'মুছে ফেলুন',
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          ref
+                                              .read(assetSearchQueryProvider.notifier)
+                                              .state = '';
+                                        },
+                                      ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close_rounded, size: 20),
+                                      tooltip: 'বন্ধ করুন',
+                                      onPressed: () {
+                                        setState(() {
+                                          _isSearchOpen = false;
+                                          _searchFocusNode.unfocus();
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              onChanged: (value) {
+                                ref
+                                    .read(assetSearchQueryProvider.notifier)
+                                    .state = value;
+                              },
+                            ),
                           ),
-                          onChanged: (value) {
-                            ref
-                                .read(assetSearchQueryProvider.notifier)
-                                .state = value;
-                          },
                         ),
-                      ),
-                      const SizedBox(width: 8),
 
-                      // Category Popup Button
-                      _buildCategoryButton(
-                        context,
-                        ref,
-                        categories: categories,
-                        t: t,
-                        selectedCategory: selectedCategory,
-                        colorScheme: colorScheme,
-                        isLoading: categoriesAsync.isLoading,
-                      ),
-                      const SizedBox(width: 8),
+                      // Action bar with Search Icon on the left
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 6.0,
+                        ),
+                        child: Row(
+                          children: [
+                            // 0. Search Icon Button
+                            InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () {
+                                setState(() {
+                                  _isSearchOpen = !_isSearchOpen;
+                                  if (_isSearchOpen) {
+                                    _searchFocusNode.requestFocus();
+                                  } else {
+                                    _searchFocusNode.unfocus();
+                                  }
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: (_isSearchOpen || searchQuery.isNotEmpty)
+                                      ? colorScheme.primary
+                                      : colorScheme.surfaceContainerHighest.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: (_isSearchOpen || searchQuery.isNotEmpty)
+                                        ? colorScheme.primary
+                                        : colorScheme.outlineVariant.withOpacity(0.4),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.search_rounded,
+                                      size: 16,
+                                      color: (_isSearchOpen || searchQuery.isNotEmpty)
+                                          ? colorScheme.onPrimary
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
+                                    if (searchQuery.isNotEmpty && !_isSearchOpen) ...[
+                                      const SizedBox(width: 4),
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(maxWidth: 80),
+                                        child: Text(
+                                          searchQuery,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onPrimary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      GestureDetector(
+                                        onTap: () {
+                                          _searchController.clear();
+                                          ref
+                                              .read(assetSearchQueryProvider.notifier)
+                                              .state = '';
+                                        },
+                                        child: Icon(Icons.close_rounded,
+                                            size: 14, color: colorScheme.onPrimary),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
 
-                      // Print Report Button
-                      _buildPrintButton(
-                        context,
-                        t: t,
-                        assets: allAssetsList,
-                        colorScheme: colorScheme,
+                            // Category Popup Button
+                            _buildCategoryButton(
+                              context,
+                              ref,
+                              categories: categories,
+                              t: t,
+                              selectedCategory: selectedCategory,
+                              colorScheme: colorScheme,
+                              isLoading: categoriesAsync.isLoading,
+                            ),
+                            const Spacer(),
+
+                            // Print Report Button
+                            _buildPrintButton(
+                              context,
+                              t: t,
+                              assets: allAssetsList,
+                              colorScheme: colorScheme,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

@@ -7,11 +7,37 @@ import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'add_edit_user_page.dart';
 import 'user_detail_page.dart';
 
-class UserListPage extends ConsumerWidget {
+class UserListPage extends ConsumerStatefulWidget {
   const UserListPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UserListPage> createState() => _UserListPageState();
+}
+
+class _UserListPageState extends ConsumerState<UserListPage> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final query = ref.read(userSearchQueryProvider);
+    _searchController.text = query;
+    if (query.isNotEmpty) {
+      _isSearchOpen = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = ref.watch(translationProvider);
     final usersAsync = ref.watch(usersListProvider);
     final selectedType = ref.watch(userTypeFilterProvider);
@@ -47,7 +73,7 @@ class UserListPage extends ConsumerWidget {
             pinned: true,
             floating: true,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(104),
+              preferredSize: Size.fromHeight(_isSearchOpen ? 104 : 52),
               child: Container(
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
@@ -59,35 +85,154 @@ class UserListPage extends ConsumerWidget {
                   ),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16.0, 2.0, 16.0, 6.0),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: showInactive ? '${t.inactive} ${t.members} ${t.searchHint}' : t.searchHint,
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
+                    // Expandable search bar
+                    if (_isSearchOpen)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16.0, 6.0, 16.0, 6.0),
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
+                            border: Border.all(
+                              color: colorScheme.primary.withOpacity(0.4),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colorScheme.primary.withOpacity(0.06),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            autofocus: true,
+                            decoration: InputDecoration(
+                              hintText: showInactive
+                                  ? '${t.inactive} ${t.members} ${t.searchHint}'
+                                  : t.searchHint,
+                              prefixIcon: Icon(Icons.search_rounded,
+                                  color: colorScheme.primary, size: 20),
+                              suffixIcon: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_searchController.text.isNotEmpty)
+                                    IconButton(
+                                      icon: const Icon(Icons.clear_rounded, size: 18),
+                                      tooltip: 'মুছে ফেলুন',
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        ref.read(userSearchQueryProvider.notifier).state = '';
+                                        setState(() {});
+                                      },
+                                    ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close_rounded, size: 20),
+                                    tooltip: 'বন্ধ করুন',
+                                    onPressed: () {
+                                      setState(() {
+                                        _isSearchOpen = false;
+                                        _searchFocusNode.unfocus();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              border: InputBorder.none,
+                            ),
+                            onChanged: (value) {
+                              ref.read(userSearchQueryProvider.notifier).state = value;
+                              setState(() {});
+                            },
+                          ),
                         ),
-                        onChanged: (value) {
-                          ref.read(userSearchQueryProvider.notifier).state =
-                              value;
-                        },
                       ),
-                    ),
+
+                    // Filter chips row with Search Icon to the left of 'সব'
                     SizedBox(
-                      height: 38,
+                      height: 40,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
                         children: [
+                          // Search Icon Button to the left of 'সব'
+                          InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              setState(() {
+                                _isSearchOpen = !_isSearchOpen;
+                                if (_isSearchOpen) {
+                                  _searchFocusNode.requestFocus();
+                                } else {
+                                  _searchFocusNode.unfocus();
+                                }
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: (_isSearchOpen || _searchController.text.isNotEmpty)
+                                    ? colorScheme.primary
+                                    : colorScheme.surfaceContainerHighest.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: (_isSearchOpen || _searchController.text.isNotEmpty)
+                                      ? colorScheme.primary
+                                      : colorScheme.outlineVariant.withOpacity(0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    size: 16,
+                                    color: (_isSearchOpen || _searchController.text.isNotEmpty)
+                                        ? colorScheme.onPrimary
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
+                                  if (_searchController.text.isNotEmpty && !_isSearchOpen) ...[
+                                    const SizedBox(width: 4),
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 80),
+                                      child: Text(
+                                        _searchController.text,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: colorScheme.onPrimary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _searchController.clear();
+                                          ref.read(userSearchQueryProvider.notifier).state = '';
+                                        });
+                                      },
+                                      child: Icon(Icons.close_rounded,
+                                          size: 14, color: colorScheme.onPrimary),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
                           _buildMemberChip(
                             label: t.all,
                             isSelected: !showInactive && selectedType == null,

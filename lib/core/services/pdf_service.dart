@@ -82,13 +82,8 @@ class PdfService {
     // Pre-render rows
     final renderedRows = <List<pw.Widget>>[];
     for (var tx in transactions) {
-      final isOverdue = tx.isOverdue;
-      String statusText = 'নেওয়া হয়েছে';
-      if (tx.status == TransactionStatus.returned) {
-        statusText = 'ফেরত দেওয়া হয়েছে';
-      } else if (isOverdue) {
-        statusText = 'মেয়াদোত্তীর্ণ';
-      }
+      final isReturned = tx.status == TransactionStatus.returned || tx.actualReturn != null;
+      final statusText = isReturned ? 'ফেরত প্রাপ্ত' : 'অধ্যয়নাধীন';
 
       renderedRows.add([
         await _buildImageText(tx.accessionNo, fontSize: 10),
