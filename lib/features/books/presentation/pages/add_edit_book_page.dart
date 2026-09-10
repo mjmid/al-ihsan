@@ -6,6 +6,7 @@ import '../../../../../core/providers/providers.dart';
 import '../../../../../core/providers/book_providers.dart';
 import '../../../../../core/providers/settings_provider.dart';
 import '../../../../../core/l10n/app_translations.dart';
+import '../../../../../core/utils/bengali_text_utils.dart';
 
 // Assuming MaktabaTextField exists, otherwise a standard TextFormField is used
 // import '../../../../../core/widgets/maktaba_text_field.dart';
@@ -822,12 +823,15 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
 
     final filtered = widget.allCategories.where((c) {
       if (_searchQuery.isEmpty) return true;
-      return c.toLowerCase().contains(_searchQuery.toLowerCase());
+      final q = _searchQuery.toLowerCase();
+      return c.toLowerCase().contains(q) ||
+          BengaliTextUtils.normalizeSubject(c)
+              .contains(BengaliTextUtils.normalizeSubject(q));
     }).toList();
 
     final isCustomQuery = _searchQuery.trim().isNotEmpty &&
         !widget.allCategories.any((c) =>
-            c.trim().toLowerCase() == _searchQuery.trim().toLowerCase());
+            BengaliTextUtils.isSameSubject(c, _searchQuery));
 
     return Container(
       decoration: BoxDecoration(
@@ -962,7 +966,8 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
                 final cat = filtered[index];
                 final count = widget.categoryCounts[cat] ?? 0;
                 final isSelected =
-                    cat.trim() == widget.selectedCategory.trim();
+                    cat.trim() == widget.selectedCategory.trim() ||
+                    BengaliTextUtils.isSameSubject(cat, widget.selectedCategory);
 
                 return ListTile(
                   shape: RoundedRectangleBorder(

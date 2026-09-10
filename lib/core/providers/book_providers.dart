@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/book_model.dart';
+import '../utils/bengali_text_utils.dart';
 import 'providers.dart';
 
 // Search query state
@@ -45,6 +46,23 @@ final bookSearchResultsProvider =
     books = await repository.getAllBooks();
   } else {
     books = await repository.searchBooks(query);
+    // Also catch books if query matches a subject category regardless of kar differences
+    final normQuery = BengaliTextUtils.normalizeSubject(query);
+    if (normQuery.length >= 2) {
+      final allBooks = await repository.getAllBooks();
+      final extraBooks = allBooks.where((b) {
+        final cat = b.subjectCategory;
+        if (cat == null || cat.trim().isEmpty) return false;
+        return BengaliTextUtils.normalizeSubject(cat).contains(normQuery);
+      });
+      final existingAccs = books.map((b) => b.accessionNo).toSet();
+      for (final eb in extraBooks) {
+        if (!existingAccs.contains(eb.accessionNo)) {
+          books.add(eb);
+          existingAccs.add(eb.accessionNo);
+        }
+      }
+    }
   }
 
   // Apply filters in-memory
@@ -54,7 +72,7 @@ final bookSearchResultsProvider =
 
   if (categoryFilter != null && categoryFilter.isNotEmpty) {
     books = books
-        .where((book) => book.subjectCategory?.trim() == categoryFilter.trim())
+        .where((book) => BengaliTextUtils.isSameSubject(book.subjectCategory, categoryFilter))
         .toList();
   }
 
@@ -85,12 +103,6 @@ final bookStatusCountsProvider = FutureProvider<Map<String, int>>((ref) async {
   return await repository.getBookStatusCounts();
 });
 
-// All distinct categories
-final bookCategoriesProvider = FutureProvider<List<String>>((ref) async {
-  final repository = ref.watch(bookRepositoryProvider);
-  return await repository.getAllCategories();
-});
-
 // Author counts
 final bookAuthorCountsProvider = FutureProvider<Map<String, int>>((ref) async {
   final repository = ref.watch(bookRepositoryProvider);
@@ -103,10 +115,17 @@ final bookPublisherCountsProvider = FutureProvider<Map<String, int>>((ref) async
   return await repository.getPublisherCounts();
 });
 
-// Category counts
+// Category counts (aggregated to merge spelling variants differing only by kars)
 final bookCategoryCountsProvider = FutureProvider<Map<String, int>>((ref) async {
   final repository = ref.watch(bookRepositoryProvider);
-  return await repository.getCategoryCounts();
+  final rawCounts = await repository.getCategoryCounts();
+  return BengaliTextUtils.aggregateCategoryCounts(rawCounts);
+});
+
+// All distinct categories (deduplicated canonical categories)
+final bookCategoriesProvider = FutureProvider<List<String>>((ref) async {
+  final counts = await ref.watch(bookCategoryCountsProvider.future);
+  return counts.keys.toList();
 });
 
 // Shelf counts

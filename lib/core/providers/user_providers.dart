@@ -42,3 +42,12 @@ final usersListProvider = FutureProvider.autoDispose<List<User>>((ref) async {
 
   return allUsers;
 });
+
+// Fetch single user by ID
+final userByIdProvider =
+    FutureProvider.autoDispose.family<User?, String>((ref, userId) async {
+  final cleanId = userId.trim();
+  if (cleanId.isEmpty) return null;
+  final repository = ref.watch(userRepositoryProvider);
+  return repository.getUserById(cleanId);
+});

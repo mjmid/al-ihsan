@@ -53,7 +53,6 @@ class TransactionListPage extends ConsumerWidget {
                     null,
                     TransactionStatus.active,
                     TransactionStatus.returned,
-                    TransactionStatus.overdue,
                     TransactionStatus.requested,
                   ],
                   selected: selectedStatus,
@@ -141,7 +140,11 @@ class TransactionListPage extends ConsumerWidget {
                                               const SizedBox(width: 6),
                                               Expanded(
                                                 child: Text(
-                                                  tx.userName ?? tx.userId,
+                                                  (tx.userName != null &&
+                                                          tx.userName!.trim().isNotEmpty &&
+                                                          tx.userName != tx.userId)
+                                                      ? '${tx.userName} (আইডি: ${tx.userId})'
+                                                      : (tx.userName ?? 'আইডি: ${tx.userId}'),
                                                   style: TextStyle(
                                                     color: colorScheme
                                                         .onSurfaceVariant,
@@ -245,33 +248,6 @@ class TransactionListPage extends ConsumerWidget {
                                         ],
                                       ),
                                     ),
-                                    if (tx.status == TransactionStatus.overdue)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                                Icons.warning_amber_rounded,
-                                                color: Colors.red,
-                                                size: 16),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${tx.overdueDays} ${t.daysOverdue}',
-                                              style: const TextStyle(
-                                                  color: Colors.red,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                   ],
                                 ),
                               ],

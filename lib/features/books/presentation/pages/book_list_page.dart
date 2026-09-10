@@ -10,6 +10,7 @@ import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import '../widgets/book_status_badge.dart';
 import 'book_detail_page.dart';
 import 'add_edit_book_page.dart';
+import '../../../../core/utils/bengali_text_utils.dart';
 
 class BookListPage extends ConsumerStatefulWidget {
   final bool isAdmin;
@@ -1001,7 +1002,10 @@ class _FilterPickerSheetState extends State<_FilterPickerSheet> {
               data: (itemsMap) {
                 final filteredEntries = itemsMap.entries.where((e) {
                   if (_filterSearchQuery.isEmpty) return true;
-                  return e.key.toLowerCase().contains(_filterSearchQuery);
+                  final q = _filterSearchQuery.toLowerCase();
+                  return e.key.toLowerCase().contains(q) ||
+                      BengaliTextUtils.normalizeSubject(e.key)
+                          .contains(BengaliTextUtils.normalizeSubject(q));
                 }).toList();
 
                 return ListView.builder(
@@ -1035,7 +1039,8 @@ class _FilterPickerSheetState extends State<_FilterPickerSheet> {
                     }
 
                     final entry = filteredEntries[i - 1];
-                    final isSelected = widget.selectedItem == entry.key;
+                    final isSelected = widget.selectedItem == entry.key ||
+                        BengaliTextUtils.isSameSubject(widget.selectedItem, entry.key);
 
                     return ListTile(
                       shape: RoundedRectangleBorder(

@@ -7,6 +7,7 @@ import '../../../../core/l10n/app_translations.dart';
 import '../../../../core/providers/providers.dart';
 import '../../../../core/providers/book_providers.dart';
 import '../../../../core/providers/transaction_providers.dart';
+import '../../../../core/providers/user_providers.dart';
 import '../../../../core/widgets/dynamic_font_text.dart';
 import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
 import 'package:maktaba_ihsan/core/providers/settings_provider.dart';
@@ -44,6 +45,7 @@ class _AddEditTransactionPageState
   bool _sendWhatsapp = true;
 
   String _currentBookId = '';
+  String _currentUserId = '';
 
   @override
   void initState() {
@@ -70,9 +72,15 @@ class _AddEditTransactionPageState
         text: _actualReturn != null ? _formatDate(_actualReturn!) : '');
 
     _currentBookId = _bookIdController.text;
+    _currentUserId = _userIdController.text;
     _bookIdController.addListener(() {
       setState(() {
         _currentBookId = _bookIdController.text;
+      });
+    });
+    _userIdController.addListener(() {
+      setState(() {
+        _currentUserId = _userIdController.text;
       });
     });
   }
@@ -385,12 +393,145 @@ class _AddEditTransactionPageState
               controller: _userIdController,
               decoration: InputDecoration(
                 labelText: t.memberId,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               enabled: !isEdit && widget.prefilledUserId == null,
               validator: (value) =>
                   value == null || value.isEmpty ? t.required : null,
             ),
+            if (_currentUserId.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Consumer(
+                builder: (context, ref, child) {
+                  final userAsync = ref.watch(userByIdProvider(_currentUserId));
+                  return userAsync.when(
+                    data: (user) {
+                      final displayName = user?.name ?? widget.transaction?.userName;
+                      if (displayName == null || displayName.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person_outline, color: Colors.orange, size: 20),
+                              const SizedBox(width: 8),
+                              Text('সদস্য আইডি: $_currentUserId',
+                                  style: const TextStyle(color: Colors.orange, fontSize: 13)),
+                            ],
+                          ),
+                        );
+                      }
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                  child: Icon(
+                                    user?.type == UserType.teacher ? Icons.school_rounded : Icons.person,
+                                    size: 18,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        displayName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                      if (user?.type != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          user!.type == UserType.teacher
+                                              ? 'শিক্ষক'
+                                              : (user.type == UserType.student ? 'ছাত্র' : 'সদস্য'),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (user?.phone != null && user!.phone!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade600),
+                                  const SizedBox(width: 6),
+                                  Text(user.phone!,
+                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                    loading: () => widget.transaction?.userName != null
+                        ? Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.person, color: Theme.of(context).colorScheme.primary, size: 18),
+                                const SizedBox(width: 8),
+                                Text(widget.transaction!.userName!,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    )),
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2)),
+                                const SizedBox(width: 10),
+                                Text(t.searching),
+                              ],
+                            ),
+                          ),
+                    error: (_, __) => widget.transaction?.userName != null
+                        ? Text('নাম: ${widget.transaction!.userName!}')
+                        : const SizedBox.shrink(),
+                  );
+                },
+              ),
+            ],
             if (!isEdit) ...[
               const SizedBox(height: 16),
               TextFormField(

@@ -512,10 +512,12 @@ class _RequestBookBottomBarState extends ConsumerState<_RequestBookBottomBar> {
 
                       if (_sendToWhatsApp) {
                         final adminPhone = ref.read(appSettingsProvider).adminWhatsAppNumber;
-                          if (adminPhone != null && adminPhone.isNotEmpty) {
-                            // Format number by removing any spaces or pluses to make it suitable for URL
-                            final formattedPhone = adminPhone.replaceAll(RegExp(r'[^0-9]'), '');
-                            final message = '''আসসালামু আলাইকুম। আমি ${authState.userName ?? ''}, নিচের কিতাবটি নেয়ার জন্য রিকোয়েস্ট পাঠিয়েছি:
+                        if (adminPhone != null && adminPhone.isNotEmpty) {
+                          final formattedPhone = adminPhone.replaceAll(RegExp(r'[^0-9]'), '');
+                          final teacherInfo = (authState.userName != null && authState.userName!.trim().isNotEmpty)
+                              ? '${authState.userName} (আইডি: ${authState.userId ?? ''})'
+                              : 'আইডি: ${authState.userId ?? ''}';
+                          final message = '''আসসালামু আলাইকুম। আমি $teacherInfo, নিচের কিতাবটি নেয়ার জন্য রিকোয়েস্ট পাঠিয়েছি:
 
 📖 কিতাবের নাম: ${widget.book.bookName}
 📚 খণ্ড: ${widget.book.volumeNo ?? 'অজানা'}

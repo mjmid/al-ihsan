@@ -214,12 +214,10 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
     if (tx.status == TransactionStatus.requested) {
       statusColor = Colors.orange;
       statusText = t.pending;
-    } else if (tx.status == TransactionStatus.active) {
+    } else if (tx.status == TransactionStatus.active ||
+        tx.status == TransactionStatus.overdue) {
       statusColor = Colors.blue;
       statusText = t.statusOngoing;
-    } else if (tx.status == TransactionStatus.overdue) {
-      statusColor = Colors.red;
-      statusText = t.statusOverdue;
     } else {
       statusColor = Colors.green;
       statusText = t.statusReturned;
