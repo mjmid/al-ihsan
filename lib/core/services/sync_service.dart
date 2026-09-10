@@ -25,6 +25,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../database/database_helper.dart';
 import 'api_service.dart';
+import 'package:supabase/supabase.dart';
+import 'supabase_client.dart';
+import 'sync_queue_service.dart';
 
 // ─── SYNC RESULT ─────────────────────────────────────────────────────────────
 
@@ -95,83 +98,120 @@ class SyncService {
   // Dependencies
   // ---------------------------------------------------------------------------
 
-  final ApiService _api;
   final DatabaseHelper _dbHelper;
   final SharedPreferences _prefs;
+  final SyncQueueNotifier? _syncQueue;
 
   SyncService({
-    required ApiService api,
+    ApiService? api,
     required DatabaseHelper dbHelper,
     required SharedPreferences prefs,
-  })  : _api = api,
-        _dbHelper = dbHelper,
-        _prefs = prefs;
+    SyncQueueNotifier? syncQueue,
+  })  : _dbHelper = dbHelper,
+        _prefs = prefs,
+        _syncQueue = syncQueue;
 
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
 
-  /// Runs a complete sync (pulls all delta changes from the server).
-  Future<SyncResult> syncAll() async {
-    _log('syncAll() started');
+  /// Runs a complete delta sync (pulls only changed rows from Supabase).
+  /// If [forceRefresh] is true, ignores last sync timestamp and pulls all rows.
+  Future<SyncResult> syncAll({bool forceRefresh = false}) async {
+    _log('syncAll() started (forceRefresh: $forceRefresh)');
 
-    // Always pass empty string to get ALL data on every pull.
-    // The GAS script returns all rows when last_synced_at is empty.
-    final result = await _api.pull('');
-    if (!result.isSuccess) {
-      _log('syncAll failed: ${result.error}');
-      // We don't know if it's offline or server error, so return partial failure.
-      return SyncResult.partialFailure(
-        totalSynced: 0,
-        errors: {'global': result.error ?? 'Unknown error'},
-      );
+    // 0. Flush any pending offline changes from the local queue to Supabase
+    if (_syncQueue != null) {
+      try {
+        await _syncQueue!.processQueue();
+      } catch (e) {
+        _log('Sync queue flush warning: $e');
+      }
     }
 
-    final data = result.data!;
+    final supabase = supabaseClient;
+    final lastSyncedAt =
+        forceRefresh ? null : _prefs.getString(kLastSyncSupabaseKey);
+    _log('Using lastSyncedAt: $lastSyncedAt');
+
     int totalSynced = 0;
 
-    _log('Pull data keys: ${data.keys.toList()}');
-
     try {
-      // 1. Sync Books
-      final rawBooks = data['books'];
+      // 1. Build queries
+      final Future<dynamic> booksQuery;
+      final Future<dynamic> usersQuery;
+      final Future<dynamic> txsQuery;
+      final Future<dynamic> assetsQuery;
+
+      // Delta sync filter: only fetch records updated after last sync
+      if (lastSyncedAt != null && lastSyncedAt.isNotEmpty) {
+        booksQuery =
+            supabase.from('books').select().gt('last_updated', lastSyncedAt);
+        usersQuery =
+            supabase.from('users').select().gt('last_updated', lastSyncedAt);
+        txsQuery = supabase
+            .from('transactions')
+            .select()
+            .gt('last_updated', lastSyncedAt);
+        assetsQuery =
+            supabase.from('assets').select().gt('last_updated', lastSyncedAt);
+      } else {
+        booksQuery = supabase.from('books').select();
+        usersQuery = supabase.from('users').select();
+        txsQuery = supabase.from('transactions').select();
+        assetsQuery = supabase.from('assets').select();
+      }
+
+      // Fetch all tables concurrently
+      final results = await Future.wait<dynamic>([
+        booksQuery,
+        usersQuery,
+        txsQuery,
+        assetsQuery,
+      ]);
+
+      final rawBooks = (results[0] as List?) ?? [];
+      final rawUsers = (results[1] as List?) ?? [];
+      final rawTxs = (results[2] as List?) ?? [];
+      final rawAssets = (results[3] as List?) ?? [];
+
       _log(
-          'Books raw type: ${rawBooks.runtimeType}, value preview: ${rawBooks.toString().substring(0, rawBooks.toString().length > 100 ? 100 : rawBooks.toString().length)}');
-      final booksList = _toList(rawBooks);
-      if (booksList.isNotEmpty) {
+          'Delta fetched: books=${rawBooks.length}, users=${rawUsers.length}, transactions=${rawTxs.length}, assets=${rawAssets.length}');
+
+      // 2. Sync Books
+      if (rawBooks.isNotEmpty) {
         final localBooks =
-            booksList.map((r) => _mapBooksRow(_toMap(r))).toList();
+            rawBooks.map((r) => _mapBooksRow(_toMap(r))).toList();
         await _dbHelper.batchUpsert(kBooksTable, localBooks, 'accession_no');
         totalSynced += localBooks.length;
         _log('Upserted ${localBooks.length} books');
       }
 
-      // 2. Sync Users
-      final rawUsers = data['users'];
-      _log('Users raw type: ${rawUsers.runtimeType}');
-      final usersList = _toList(rawUsers);
-      if (usersList.isNotEmpty) {
+      // 3. Sync Users
+      if (rawUsers.isNotEmpty) {
         final localUsers =
-            usersList.map((r) => _mapUsersRow(_toMap(r))).toList();
+            rawUsers.map((r) => _mapUsersRow(_toMap(r))).toList();
         await _dbHelper.batchUpsert(kUsersTable, localUsers, 'user_id');
         totalSynced += localUsers.length;
         _log('Upserted ${localUsers.length} users');
       }
 
-      // 3. Sync Transactions
-      final rawTxs = data['transactions'];
-      _log('Transactions raw type: ${rawTxs.runtimeType}');
-      final txsList = _toList(rawTxs);
-      if (txsList.isNotEmpty) {
+      // 4. Sync Transactions
+      if (rawTxs.isNotEmpty) {
         final localTxs =
-            txsList.map((r) => _mapTransactionsRow(_toMap(r))).toList();
-            
-        final remoteIds = localTxs.map((e) => "'${e['trx_id']}'").join(',');
-        if (remoteIds.isNotEmpty) {
-          final db = await _dbHelper.database;
-          // Delete transactions not on server, protecting recently created offline ones (last 1 hour)
-          final oneHourAgo = DateTime.now().subtract(const Duration(hours: 1)).toIso8601String();
-          await db.execute('DELETE FROM $kTransactionsTable WHERE trx_id NOT IN ($remoteIds) AND last_updated < ?', [oneHourAgo]);
+            rawTxs.map((r) => _mapTransactionsRow(_toMap(r))).toList();
+
+        if (lastSyncedAt == null) {
+          final remoteIds = localTxs.map((e) => "'${e['trx_id']}'").join(',');
+          if (remoteIds.isNotEmpty) {
+            final db = await _dbHelper.database;
+            final oneHourAgo = DateTime.now()
+                .subtract(const Duration(hours: 1))
+                .toIso8601String();
+            await db.execute(
+                'DELETE FROM $kTransactionsTable WHERE trx_id NOT IN ($remoteIds) AND last_updated < ?',
+                [oneHourAgo]);
+          }
         }
 
         await _dbHelper.batchUpsert(kTransactionsTable, localTxs, 'trx_id');
@@ -179,25 +219,22 @@ class SyncService {
         _log('Upserted ${localTxs.length} transactions');
       }
 
-      // 4. Sync Assets
-      final rawAssets = data['assets'];
-      if (rawAssets != null) {
-        _log('Assets raw type: ${rawAssets.runtimeType}');
-        final assetsList = _toList(rawAssets);
-        if (assetsList.isNotEmpty) {
-          final localAssets = assetsList
-              .map((r) => _mapAssetsRow(_toMap(r)))
-              .where((a) =>
-                  a['asset_id'] != null &&
-                  a['asset_id'].toString().trim().isNotEmpty &&
-                  a['name'] != null &&
-                  a['name'].toString().trim().isNotEmpty)
-              .toList();
+      // 5. Sync Assets
+      if (rawAssets.isNotEmpty) {
+        final localAssets = rawAssets
+            .map((r) => _mapAssetsRow(_toMap(r)))
+            .where((a) =>
+                a['asset_id'] != null &&
+                a['asset_id'].toString().trim().isNotEmpty &&
+                a['name'] != null &&
+                a['name'].toString().trim().isNotEmpty)
+            .toList();
 
-          final db = await _dbHelper.database;
-          await db.execute(
-              "DELETE FROM $kAssetsTable WHERE name IS NULL OR TRIM(name) = '';");
+        final db = await _dbHelper.database;
+        await db.execute(
+            "DELETE FROM $kAssetsTable WHERE name IS NULL OR TRIM(name) = '';");
 
+        if (lastSyncedAt == null) {
           final remoteIds =
               localAssets.map((e) => "'${e['asset_id']}'").join(',');
           if (remoteIds.isNotEmpty) {
@@ -208,31 +245,37 @@ class SyncService {
                 'DELETE FROM $kAssetsTable WHERE asset_id NOT IN ($remoteIds) AND last_updated < ?',
                 [oneHourAgo]);
           }
+        }
 
-          if (localAssets.isNotEmpty) {
-            await _dbHelper.batchUpsert(kAssetsTable, localAssets, 'asset_id');
-            totalSynced += localAssets.length;
-            _log('Upserted ${localAssets.length} assets');
-          }
+        if (localAssets.isNotEmpty) {
+          await _dbHelper.batchUpsert(kAssetsTable, localAssets, 'asset_id');
+          totalSynced += localAssets.length;
+          _log('Upserted ${localAssets.length} assets');
         }
       }
 
-      // 5. Update last_synced_at
-      final timestamp = data['timestamp']?.toString();
-      if (timestamp != null && timestamp.isNotEmpty) {
-        await _prefs.setString('last_synced_at', timestamp);
-      }
+      // 6. Update last_synced_at timestamp to current UTC
+      final newTimestamp = DateTime.now().toUtc().toIso8601String();
+      await _prefs.setString(kLastSyncSupabaseKey, newTimestamp);
 
-      // 5. Repair any data inconsistencies (e.g. Active transactions but book is Available)
+      // 7. Repair any data inconsistencies
       await _dbHelper.repairBookStatuses();
 
       _log('syncAll() finished — synced $totalSynced rows total');
       return SyncResult.success(totalSynced);
     } catch (e, stackTrace) {
       _log('syncAll() exception: $e\n$stackTrace');
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('socketexception') ||
+          errStr.contains('failed host lookup') ||
+          errStr.contains('network is unreachable') ||
+          errStr.contains('connection refused') ||
+          errStr.contains('clientexception')) {
+        return SyncResult.offline();
+      }
       return SyncResult.partialFailure(
         totalSynced: totalSynced,
-        errors: {'database': 'Failed to save data: $e'},
+        errors: {'database': 'Failed to sync: $e'},
       );
     }
   }

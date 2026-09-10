@@ -23,6 +23,18 @@ const String kApiKey = 'YOUR_API_KEY_HERE';
 /// Maximum number of seconds to wait for a connection to be established.
 const int kApiTimeoutSeconds = 30;
 
+// ─── SUPABASE ────────────────────────────────────────────────────────────────
+
+/// Supabase Project URL.
+const String kSupabaseUrl = 'https://dgidwllinghiecczkrsk.supabase.co';
+
+/// Supabase Anon / Publishable Key.
+const String kSupabaseAnonKey =
+    'sb_publishable_diCWkqo1WJbNZ_FV3UD_Aw_8dpDFH9-';
+
+/// SharedPreferences key for Supabase delta sync.
+const String kLastSyncSupabaseKey = 'supabase_last_synced_at';
+
 /// Default number of rows returned per paginated GAS page request.
 const int kPageSize = 300;
 

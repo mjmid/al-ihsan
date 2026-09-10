@@ -61,7 +61,13 @@ final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   final dbHelper = ref.watch(databaseHelperProvider);
   final prefs = await ref.watch(sharedPreferencesProvider.future);
   final api = ref.watch(apiServiceProvider);
-  return SyncService(api: api, dbHelper: dbHelper, prefs: prefs);
+  final syncQueue = ref.watch(syncQueueProvider.notifier);
+  return SyncService(
+    api: api,
+    dbHelper: dbHelper,
+    prefs: prefs,
+    syncQueue: syncQueue,
+  );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

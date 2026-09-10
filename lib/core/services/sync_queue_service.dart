@@ -26,6 +26,7 @@ import 'package:uuid/uuid.dart';
 
 import '../constants/app_constants.dart';
 import 'api_service.dart';
+import 'supabase_client.dart';
 
 // ─── SYNC OPERATION MODEL ────────────────────────────────────────────────────
 
@@ -168,7 +169,8 @@ class SyncQueueNotifier extends StateNotifier<List<SyncOperation>> {
   ///     discarded (logged as an error).
   ///  5. Waits [kSyncQueueRetryDelaySeconds] between each dispatch to honour
   ///     GAS's ~30 requests/minute per-user quota.
-  Future<void> processQueue(ApiService api) async {
+  /// Drains the queue by dispatching operations to Supabase.
+  Future<void> processQueue([ApiService? api]) async {
     if (_isProcessing) {
       _debugLog('processQueue called while already processing — skipping.');
       return;
@@ -183,122 +185,164 @@ class SyncQueueNotifier extends StateNotifier<List<SyncOperation>> {
 
     try {
       final snapshot = List<SyncOperation>.from(state);
+      final List<String> successfullyPushedIds = [];
 
-      // Convert SyncOperations to GAS format
-      final changes = snapshot.map((op) {
-        // Map local sheet names to expected GAS table names
-        String gasTable;
-        if (op.sheet == 'Books')
-          gasTable = 'Books';
-        else if (op.sheet == 'Users')
-          gasTable = 'Users';
-        else if (op.sheet == 'Transactions')
-          gasTable = 'Transactions';
-        else
-          gasTable = op.sheet;
-
-        // Map local operation to GAS operation
-        String gasOp = 'UPDATE';
-        if (op.action == 'upsert')
-          gasOp = 'UPDATE'; // GAS handles both insert and update
-        else if (op.action == 'delete') gasOp = 'DELETE';
-
-        // Map local columns to GAS generic columns
-        final mappedPayload = <String, dynamic>{};
-        if (gasTable == 'Books') {
-          mappedPayload['id'] = op.payload['accession_no'];
+      for (final op in snapshot) {
+        final tableName = op.sheet.toLowerCase();
+        try {
           if (op.action == 'upsert') {
-            mappedPayload['accession_no'] = op.payload['accession_no'];
-            mappedPayload['book_name'] = op.payload['book_name'];
-            mappedPayload['volume_no'] = op.payload['volume_no'];
-            mappedPayload['author'] = op.payload['author'];
-            mappedPayload['translator'] = op.payload['translator'];
-            mappedPayload['publisher'] = op.payload['publisher'];
-            mappedPayload['address'] = op.payload['address'];
-            mappedPayload['subject_category'] = op.payload['subject_category'];
-            mappedPayload['shelf_no'] = op.payload['shelf_no'];
-            mappedPayload['remarks'] = op.payload['remarks'];
-            mappedPayload['status'] = op.payload['status'];
-            mappedPayload['last_updated'] = op.payload['last_updated'];
+            final mapped = _mapToSupabasePayload(op.sheet, op.payload);
+            await supabaseClient.from(tableName).upsert(mapped);
+          } else if (op.action == 'delete') {
+            final pk = _primaryKeyFor(op.sheet);
+            final id = op.payload[pk]?.toString() ?? '';
+            if (id.isNotEmpty) {
+              await supabaseClient
+                  .from(tableName)
+                  .delete()
+                  .eq(pk, id);
+            }
           }
-        } else if (gasTable == 'Users') {
-          mappedPayload['user_id'] = op.payload['user_id'];
-          if (op.action == 'upsert') {
-            mappedPayload['name'] = op.payload['name'];
-            mappedPayload['phone'] = op.payload['phone'];
-            mappedPayload['pin'] = op.payload['pin'];
-            mappedPayload['type'] = op.payload['type'];
-            mappedPayload['class_jamat'] = op.payload['class_jamat'];
-            mappedPayload['status'] = op.payload['status'];
-            mappedPayload['last_updated'] = op.payload['last_updated'];
-          }
-        } else if (gasTable == 'Transactions') {
-          mappedPayload['trx_id'] = op.payload['trx_id'];
-          if (op.action == 'upsert') {
-            mappedPayload['accession_no'] = op.payload['accession_no'];
-            mappedPayload['user_id'] = op.payload['user_id'];
-            mappedPayload['issue_date'] = op.payload['issue_date'];
-            mappedPayload['expected_return'] = op.payload['expected_return'];
-            mappedPayload['actual_return'] = op.payload['actual_return'];
-            mappedPayload['status'] = op.payload['status'];
-            mappedPayload['last_updated'] = op.payload['last_updated'];
-          }
-        } else if (gasTable == 'Assets') {
-          mappedPayload['asset_id'] = op.payload['asset_id'];
-          mappedPayload['id'] = op.payload['asset_id'];
-          if (op.action == 'upsert') {
-            mappedPayload['name'] = op.payload['name'];
-            mappedPayload['category'] = op.payload['category'];
-            mappedPayload['quantity'] = op.payload['quantity'];
-            mappedPayload['unit'] = op.payload['unit'];
-            mappedPayload['location'] = op.payload['location'];
-            mappedPayload['condition'] = op.payload['condition'];
-            mappedPayload['acquisition_type'] = op.payload['acquisition_type'];
-            mappedPayload['donor_or_source'] = op.payload['donor_or_source'];
-            mappedPayload['cost'] = op.payload['cost'];
-            mappedPayload['purchase_date'] = op.payload['purchase_date'];
-            mappedPayload['remarks'] = op.payload['remarks'];
-            mappedPayload['last_updated'] = op.payload['last_updated'];
-          }
+          successfullyPushedIds.add(op.id);
+          _debugLog('Pushed op ${op.id} to Supabase ($tableName)');
+        } catch (e) {
+          _debugLog('Failed to push op ${op.id} to Supabase: $e');
+          // Increment retry count
+          op.retryCount++;
+          // Network or server error — break loop to avoid pounding server while offline
+          break;
         }
+      }
 
-        return {
-          'table': gasTable,
-          'operation': gasOp,
-          'data': mappedPayload,
-        };
-      }).toList();
-
-      // Push all changes in a single API call
-      final result = await api.push(changes);
-
-      if (result.isSuccess) {
-        _debugLog(
-            'Batch push successful — clearing ${snapshot.length} operations from queue.');
-        // Remove all successfully pushed operations from the queue
-        final pushedIds = snapshot.map((op) => op.id).toSet();
+      if (successfullyPushedIds.isNotEmpty) {
+        final pushedSet = successfullyPushedIds.toSet();
         state = [
           for (final op in state)
-            if (!pushedIds.contains(op.id)) op
+            if (!pushedSet.contains(op.id)) op
         ];
-      } else {
-        _debugLog('Batch push failed: ${result.error}');
-        // Increment retry counts for all operations in the snapshot
-        state = [
-          for (final op in state)
-            if (snapshot.any((s) => s.id == op.id))
-              if (op.retryCount + 1 < kMaxRetryAttempts)
-                op.copyWithIncrementedRetry()
-              else
-                // Drop operations that exceeded max retries
-                null
-        ].whereType<SyncOperation>().toList();
+        _debugLog(
+            'Queue updated. Cleared ${pushedSet.length} ops. Remaining: ${state.length}');
       }
     } catch (e) {
       _debugLog('Error processing queue: $e');
     } finally {
       _isProcessing = false;
       _debugLog('Queue processing finished. Remaining: ${state.length}');
+    }
+  }
+
+  /// Maps local payload to clean Supabase schema columns
+  Map<String, dynamic> _mapToSupabasePayload(
+      String sheet, Map<String, dynamic> p) {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    switch (sheet.toLowerCase()) {
+      case 'books':
+        return {
+          'accession_no': p['accession_no']?.toString().trim() ?? '',
+          'book_name': p['book_name']?.toString().trim() ?? '',
+          'volume_no': (p['volume_no']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['volume_no']?.toString().trim(),
+          'author': (p['author']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['author']?.toString().trim(),
+          'translator': (p['translator']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['translator']?.toString().trim(),
+          'publisher': (p['publisher']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['publisher']?.toString().trim(),
+          'address': (p['address']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['address']?.toString().trim(),
+          'subject_category':
+              (p['subject_category']?.toString().trim().isEmpty ?? true)
+                  ? null
+                  : p['subject_category']?.toString().trim(),
+          'shelf_no': (p['shelf_no']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['shelf_no']?.toString().trim(),
+          'remarks': (p['remarks']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['remarks']?.toString().trim(),
+          'status': (p['status']?.toString().trim().isEmpty ?? true)
+              ? 'Available'
+              : p['status']?.toString().trim(),
+          'last_updated': nowIso,
+        };
+      case 'users':
+        return {
+          'user_id': p['user_id']?.toString().trim() ?? '',
+          'name': p['name']?.toString().trim() ?? '',
+          'phone': (p['phone']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['phone']?.toString().trim(),
+          'pin': (p['pin']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['pin']?.toString().trim(),
+          'type': p['type']?.toString().trim() ?? 'Student',
+          'class_jamat': (p['class_jamat']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['class_jamat']?.toString().trim(),
+          'status': (p['status']?.toString().trim().isEmpty ?? true)
+              ? 'Active'
+              : p['status']?.toString().trim(),
+          'last_updated': nowIso,
+        };
+      case 'transactions':
+        return {
+          'trx_id': p['trx_id']?.toString().trim() ?? '',
+          'accession_no': p['accession_no']?.toString().trim() ?? '',
+          'user_id': p['user_id']?.toString().trim() ?? '',
+          'issue_date': _parseTimestamp(p['issue_date']) ?? nowIso,
+          'expected_return': _parseTimestamp(p['expected_return']),
+          'actual_return': _parseTimestamp(p['actual_return']),
+          'status': (p['status']?.toString().trim().isEmpty ?? true)
+              ? 'Active'
+              : p['status']?.toString().trim(),
+          'last_updated': nowIso,
+        };
+      case 'assets':
+        return {
+          'asset_id': p['asset_id']?.toString().trim() ?? '',
+          'name': p['name']?.toString().trim() ?? '',
+          'category': (p['category']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['category']?.toString().trim(),
+          'quantity': int.tryParse(p['quantity']?.toString() ?? '1') ?? 1,
+          'unit': (p['unit']?.toString().trim().isEmpty ?? true)
+              ? 'টি'
+              : p['unit']?.toString().trim(),
+          'location': (p['location']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['location']?.toString().trim(),
+          'condition': p['condition']?.toString().trim() ?? 'good',
+          'acquisition_type':
+              p['acquisition_type']?.toString().trim() ?? 'purchased',
+          'donor_or_source':
+              (p['donor_or_source']?.toString().trim().isEmpty ?? true)
+                  ? null
+                  : p['donor_or_source']?.toString().trim(),
+          'cost': double.tryParse(p['cost']?.toString() ?? '') ?? 0.0,
+          'purchase_date': _parseTimestamp(p['purchase_date']),
+          'remarks': (p['remarks']?.toString().trim().isEmpty ?? true)
+              ? null
+              : p['remarks']?.toString().trim(),
+          'last_updated': nowIso,
+        };
+      default:
+        return Map<String, dynamic>.from(p);
+    }
+  }
+
+  String? _parseTimestamp(dynamic val) {
+    if (val == null) return null;
+    final str = val.toString().trim();
+    if (str.isEmpty) return null;
+    try {
+      return DateTime.parse(str).toUtc().toIso8601String();
+    } catch (_) {
+      return null;
     }
   }
 
