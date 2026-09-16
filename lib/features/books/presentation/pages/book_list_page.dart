@@ -322,82 +322,94 @@ class _BookListPageState extends ConsumerState<BookListPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Expandable Search Bar (Revealed when search icon is clicked)
-                      if (_isSearchOpen)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                          child: Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: colorScheme.primary.withOpacity(0.4),
-                                width: 1.2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withOpacity(0.06),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              focusNode: _searchFocusNode,
-                              autofocus: true,
-                              style: TextStyle(
-                                fontFamily: appFontFamily,
-                                fontFamilyFallback: fontFallback,
-                                fontSize: 14,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: t.searchHint,
-                                hintStyle: TextStyle(
-                                  color: colorScheme.onSurfaceVariant.withOpacity(0.7),
-                                  fontSize: 13,
-                                  fontFamily: appFontFamily,
-                                  fontFamilyFallback: fontFallback,
-                                ),
-                                prefixIcon: Icon(Icons.search_rounded,
-                                    color: colorScheme.primary, size: 20),
-                                suffixIcon: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_searchController.text.isNotEmpty)
-                                      IconButton(
-                                        icon: const Icon(Icons.clear_rounded, size: 18),
-                                        tooltip: 'মুছে ফেলুন',
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          ref.read(bookSearchQueryProvider.notifier).state = '';
-                                          setState(() {});
-                                        },
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close_rounded, size: 20),
-                                      tooltip: 'বন্ধ করুন',
-                                      onPressed: () {
-                                        setState(() {
-                                          _isSearchOpen = false;
-                                          _searchFocusNode.unfocus();
-                                        });
-                                      },
+                      // Expandable Search Bar (Revealed smoothly when search icon is clicked)
+                      ClipRect(
+                        child: AnimatedAlign(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOutCubic,
+                          alignment: Alignment.topCenter,
+                          heightFactor: _isSearchOpen ? 1.0 : 0.0,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            opacity: _isSearchOpen ? 1.0 : 0.0,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: colorScheme.primary.withOpacity(0.4),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: colorScheme.primary.withOpacity(0.06),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                                border: InputBorder.none,
+                                child: TextField(
+                                  controller: _searchController,
+                                  focusNode: _searchFocusNode,
+                                  autofocus: false,
+                                  style: TextStyle(
+                                    fontFamily: appFontFamily,
+                                    fontFamilyFallback: fontFallback,
+                                    fontSize: 14,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: t.searchHint,
+                                    hintStyle: TextStyle(
+                                      color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                      fontSize: 13,
+                                      fontFamily: appFontFamily,
+                                      fontFamilyFallback: fontFallback,
+                                    ),
+                                    prefixIcon: Icon(Icons.search_rounded,
+                                        color: colorScheme.primary, size: 20),
+                                    suffixIcon: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (_searchController.text.isNotEmpty)
+                                          IconButton(
+                                            icon: const Icon(Icons.clear_rounded, size: 18),
+                                            tooltip: 'মুছে ফেলুন',
+                                            onPressed: () {
+                                              _searchController.clear();
+                                              ref.read(bookSearchQueryProvider.notifier).state = '';
+                                              setState(() {});
+                                            },
+                                          ),
+                                        IconButton(
+                                          icon: const Icon(Icons.close_rounded, size: 20),
+                                          tooltip: 'বন্ধ করুন',
+                                          onPressed: () {
+                                            setState(() {
+                                              _isSearchOpen = false;
+                                              _searchFocusNode.unfocus();
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 10),
+                                    border: InputBorder.none,
+                                  ),
+                                  onChanged: (value) {
+                                    ref.read(bookSearchQueryProvider.notifier).state = value;
+                                    setState(() {});
+                                  },
+                                ),
                               ),
-                              onChanged: (value) {
-                                ref.read(bookSearchQueryProvider.notifier).state = value;
-                                setState(() {});
-                              },
                             ),
                           ),
                         ),
+                      ),
 
                       // Faceted Filter Chips Carousel with Search Icon on the left
                       SingleChildScrollView(
@@ -1133,6 +1145,9 @@ class BookListTile extends ConsumerWidget {
             ? const ['ArabicMyLotus', 'BengaliSolaiman']
             : const ['ArabicMyLotus', 'UrduNastaleeq']);
 
+    final isBookArabic = RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(book.bookName);
+    final double bookFontSize = isBookArabic ? 19.5 : 17.5;
+
     Color avatarColor;
     switch (book.status) {
       case BookStatus.available:
@@ -1190,8 +1205,8 @@ class BookListTile extends ConsumerWidget {
                             child: Text(
                               book.bookName,
                               style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                fontSize: bookFontSize,
                                 fontFamily: appFontFamily,
                                 fontFamilyFallback: fontFallback,
                               ),
@@ -1205,50 +1220,62 @@ class BookListTile extends ConsumerWidget {
                       if (book.author != null &&
                           book.author!.trim().isNotEmpty &&
                           book.author != '.') ...[
-                        Row(
-                          children: [
-                            Icon(Icons.person_outline_rounded,
-                                size: 14, color: colorScheme.onSurfaceVariant),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                book.author!,
-                                style: TextStyle(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: 13,
-                                  fontFamily: appFontFamily,
-                                  fontFamilyFallback: fontFallback,
+                        Builder(
+                          builder: (context) {
+                            final isAuthorArabic = RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(book.author!);
+                            final double authorFontSize = isAuthorArabic ? 15.5 : 14.5;
+                            return Row(
+                              children: [
+                                Icon(Icons.person_outline_rounded,
+                                    size: 15, color: colorScheme.onSurfaceVariant),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    book.author!,
+                                    style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: authorFontSize,
+                                      fontFamily: appFontFamily,
+                                      fontFamilyFallback: fontFallback,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 4),
                       ],
                       if (book.publisher != null &&
                           book.publisher!.trim().isNotEmpty &&
                           book.publisher != '.') ...[
-                        Row(
-                          children: [
-                            Icon(Icons.business_outlined,
-                                size: 14, color: colorScheme.onSurfaceVariant),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                book.publisher!,
-                                style: TextStyle(
-                                  color: colorScheme.onSurfaceVariant.withOpacity(0.85),
-                                  fontSize: 12,
-                                  fontFamily: appFontFamily,
-                                  fontFamilyFallback: fontFallback,
+                        Builder(
+                          builder: (context) {
+                            final isPubArabic = RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(book.publisher!);
+                            final double pubFontSize = isPubArabic ? 14.5 : 13.5;
+                            return Row(
+                              children: [
+                                Icon(Icons.business_outlined,
+                                    size: 15, color: colorScheme.onSurfaceVariant),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    book.publisher!,
+                                    style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant.withOpacity(0.9),
+                                      fontSize: pubFontSize,
+                                      fontFamily: appFontFamily,
+                                      fontFamilyFallback: fontFallback,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 4),
                       ],

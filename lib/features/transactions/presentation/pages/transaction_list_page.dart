@@ -35,6 +35,7 @@ class TransactionListPage extends ConsumerWidget {
         onRefresh: () async {
           final syncService = await ref.read(syncServiceProvider.future);
           await syncService.syncAll();
+          ref.invalidate(allTransactionsProvider);
           ref.invalidate(transactionsListProvider);
         },
         child: CustomScrollView(
@@ -122,14 +123,30 @@ class TransactionListPage extends ConsumerWidget {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          DynamicFontText(
-                                            tx.bookName ?? tx.accessionNo,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                            maxLines: 2,
-                                          ),
+                                           Builder(builder: (context) {
+                                             final volTrim = tx.volumeNo?.trim() ?? '';
+                                             String bookDisplayName = tx.bookName ?? tx.accessionNo;
+                                             if (volTrim.isNotEmpty) {
+                                               if (volTrim.contains('খণ্ড') ||
+                                                   volTrim.contains('খন্ড') ||
+                                                   volTrim.contains('جلد') ||
+                                                   volTrim.contains('Vol') ||
+                                                   volTrim.contains('vol')) {
+                                                 bookDisplayName = '$bookDisplayName ($volTrim)';
+                                               } else {
+                                                 bookDisplayName = '$bookDisplayName (খণ্ড: $volTrim)';
+                                               }
+                                             }
+                                             final hasArabicOrUrdu = RegExp(r'[\u0600-\u06FF\u0750-\u077F]').hasMatch(bookDisplayName);
+                                             return DynamicFontText(
+                                               bookDisplayName,
+                                               style: TextStyle(
+                                                 fontWeight: FontWeight.bold,
+                                                 fontSize: hasArabicOrUrdu ? 12.5 : 14.5,
+                                               ),
+                                               maxLines: 2,
+                                             );
+                                           }),
                                           const SizedBox(height: 6),
                                           Row(
                                             children: [

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/user_model.dart';
+import '../../../../core/models/book_model.dart';
 import '../../../../core/providers/user_providers.dart';
+import '../../../../core/providers/transaction_providers.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'add_edit_user_page.dart';
@@ -87,73 +89,85 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Expandable search bar
-                    if (_isSearchOpen)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16.0, 6.0, 16.0, 6.0),
-                        child: Container(
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: colorScheme.primary.withOpacity(0.4),
-                              width: 1.2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: colorScheme.primary.withOpacity(0.06),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            autofocus: true,
-                            decoration: InputDecoration(
-                              hintText: showInactive
-                                  ? '${t.inactive} ${t.members} ${t.searchHint}'
-                                  : t.searchHint,
-                              prefixIcon: Icon(Icons.search_rounded,
-                                  color: colorScheme.primary, size: 20),
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (_searchController.text.isNotEmpty)
-                                    IconButton(
-                                      icon: const Icon(Icons.clear_rounded, size: 18),
-                                      tooltip: 'মুছে ফেলুন',
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        ref.read(userSearchQueryProvider.notifier).state = '';
-                                        setState(() {});
-                                      },
-                                    ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close_rounded, size: 20),
-                                    tooltip: 'বন্ধ করুন',
-                                    onPressed: () {
-                                      setState(() {
-                                        _isSearchOpen = false;
-                                        _searchFocusNode.unfocus();
-                                      });
-                                    },
+                    // Expandable search bar (smoothly animated)
+                    ClipRect(
+                      child: AnimatedAlign(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOutCubic,
+                        alignment: Alignment.topCenter,
+                        heightFactor: _isSearchOpen ? 1.0 : 0.0,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          opacity: _isSearchOpen ? 1.0 : 0.0,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 6.0, 16.0, 6.0),
+                            child: Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: colorScheme.primary.withOpacity(0.4),
+                                  width: 1.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorScheme.primary.withOpacity(0.06),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              border: InputBorder.none,
+                              child: TextField(
+                                controller: _searchController,
+                                focusNode: _searchFocusNode,
+                                autofocus: false,
+                                decoration: InputDecoration(
+                                  hintText: showInactive
+                                      ? '${t.inactive} ${t.members} ${t.searchHint}'
+                                      : t.searchHint,
+                                  prefixIcon: Icon(Icons.search_rounded,
+                                      color: colorScheme.primary, size: 20),
+                                  suffixIcon: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_searchController.text.isNotEmpty)
+                                        IconButton(
+                                          icon: const Icon(Icons.clear_rounded, size: 18),
+                                          tooltip: 'মুছে ফেলুন',
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            ref.read(userSearchQueryProvider.notifier).state = '';
+                                            setState(() {});
+                                          },
+                                        ),
+                                      IconButton(
+                                        icon: const Icon(Icons.close_rounded, size: 20),
+                                        tooltip: 'বন্ধ করুন',
+                                        onPressed: () {
+                                          setState(() {
+                                            _isSearchOpen = false;
+                                            _searchFocusNode.unfocus();
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  border: InputBorder.none,
+                                ),
+                                onChanged: (value) {
+                                  ref.read(userSearchQueryProvider.notifier).state = value;
+                                  setState(() {});
+                                },
+                              ),
                             ),
-                            onChanged: (value) {
-                              ref.read(userSearchQueryProvider.notifier).state = value;
-                              setState(() {});
-                            },
                           ),
                         ),
                       ),
+                    ),
 
                     // Filter chips row with Search Icon to the left of 'সব'
                     SizedBox(
@@ -429,63 +443,127 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 8),
-                                        Row(
+                                        const SizedBox(height: 6),
+                                        Wrap(
+                                          spacing: 12,
+                                          runSpacing: 4,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
                                           children: [
-                                            Icon(_getUserTypeIcon(user.type),
-                                                size: 14,
-                                                color: colorScheme
-                                                    .onSurfaceVariant),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              _translateUserType(user.type, t),
-                                              style: TextStyle(
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                  fontSize: 13),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(_getUserTypeIcon(user.type),
+                                                    size: 14,
+                                                    color: colorScheme
+                                                        .onSurfaceVariant),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _translateUserType(user.type, t),
+                                                  style: TextStyle(
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                      fontSize: 13),
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(width: 12),
-                                            Icon(Icons.badge_outlined,
-                                                size: 14,
-                                                color: colorScheme
-                                                    .onSurfaceVariant),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${t.memberId}: ${user.userId}',
-                                              style: TextStyle(
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                  fontSize: 13),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.badge_outlined,
+                                                    size: 14,
+                                                    color: colorScheme
+                                                        .onSurfaceVariant),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${t.memberId}: ${user.userId}',
+                                                  style: TextStyle(
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                      fontSize: 13),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
-                                        if (user.phone != null &&
-                                            user.phone!.isNotEmpty) ...[
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Icon(Icons.phone_outlined,
-                                                  size: 14,
-                                                  color: colorScheme
-                                                      .onSurfaceVariant),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                user.phone!,
-                                                style: TextStyle(
-                                                    color: colorScheme
-                                                        .onSurfaceVariant,
-                                                    fontSize: 13),
+                                        const SizedBox(height: 6),
+                                        Wrap(
+                                          spacing: 12,
+                                          runSpacing: 4,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: [
+                                            if (user.phone != null &&
+                                                user.phone!.trim().isNotEmpty)
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.phone_outlined,
+                                                      size: 14,
+                                                      color: colorScheme
+                                                          .onSurfaceVariant),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    user.phone!,
+                                                    style: TextStyle(
+                                                        color: colorScheme
+                                                            .onSurfaceVariant,
+                                                        fontSize: 13),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        ],
+                                            Consumer(
+                                              builder: (context, ref, child) {
+                                                final activeCounts =
+                                                    ref.watch(userActiveBookCountsProvider);
+                                                final bookCount =
+                                                    activeCounts[user.userId] ?? 0;
+                                                return Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.auto_stories_outlined,
+                                                      size: 14,
+                                                      color: bookCount > 0
+                                                          ? (isDark
+                                                              ? const Color(0xFF5BE29B)
+                                                              : Colors.green.shade800)
+                                                          : (isDark
+                                                              ? Colors.white38
+                                                              : Colors.grey.shade600),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      bookCount > 0
+                                                          ? '${bookCount.toBengaliNumerals()}টি কিতাব আছে'
+                                                          : '০টি কিতাব আছে',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight: bookCount > 0
+                                                            ? FontWeight.w600
+                                                            : FontWeight.normal,
+                                                        color: bookCount > 0
+                                                            ? (isDark
+                                                                ? const Color(0xFF5BE29B)
+                                                                : Colors.green.shade800)
+                                                            : (isDark
+                                                                ? Colors.white38
+                                                                : Colors.grey.shade600),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
+                                        horizontal: 10, vertical: 5),
                                     decoration: BoxDecoration(
                                       color: user.status == UserStatus.active
                                           ? Colors.green.withOpacity(0.1)
