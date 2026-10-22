@@ -617,14 +617,24 @@ class _AppInstallBottomBannerState extends State<AppInstallBottomBanner>
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 18),
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'বন্ধ করুন',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      onPressed: _dismissBanner,
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _dismissBanner,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: colorScheme.onSurface.withOpacity(0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ],
                 ),
