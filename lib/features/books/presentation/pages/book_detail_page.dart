@@ -279,54 +279,50 @@ class BookDetailPage extends ConsumerWidget {
                             Icons.notes, t.remarksLabel, book.remarks!),
                     ],
                   ),
-                  if (book.status == BookStatus.lent) ...[
-                    const SizedBox(height: 16),
-                    _buildSectionCard(
-                      context,
-                      title: t.transactionTab,
-                      children: [
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final txAsync = ref.watch(
-                                activeBookTransactionProvider(
-                                    book.accessionNo));
-                            return txAsync.when(
-                              data: (tx) {
-                                if (tx == null) {
-                                  return const ListTile(
-                                    leading: Icon(Icons.info_outline),
-                                    title: Text('কোনো তথ্য পাওয়া যায়নি'),
-                                  );
-                                }
-                                return Column(
-                                  children: [
-                                    _buildInfoRow(Icons.person, 'যার কাছে আছে',
-                                        tx.userName ?? tx.userId),
-                                    _buildInfoRow(
-                                        Icons.calendar_today,
-                                        t.issueDate,
-                                        tx.issueDate.toString().split(' ')[0]),
-                                    if (tx.status ==
-                                            TransactionStatus.returned &&
-                                        tx.actualReturn != null)
-                                      _buildInfoRow(
-                                          Icons.event,
-                                          t.returnDate,
-                                          tx.actualReturn!
-                                              .toString()
-                                              .split(' ')[0]),
-                                  ],
-                                );
-                              },
-                              loading: () => const Center(
-                                  child: CircularProgressIndicator()),
-                              error: (e, st) => Text('Error: $e'),
-                            );
-                          },
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final txAsync = ref.watch(
+                          activeBookTransactionProvider(book.accessionNo));
+                      final tx = txAsync.value;
+                      if (book.status != BookStatus.lent && tx == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: _buildSectionCard(
+                          context,
+                          title: t.transactionTab,
+                          children: [
+                            if (tx != null) ...[
+                              _buildInfoRow(Icons.person, 'যার কাছে আছে',
+                                  tx.userName != null ? '${tx.userName} (সদস্য আইডি: ${tx.userId})' : 'সদস্য আইডি: ${tx.userId}'),
+                              _buildInfoRow(
+                                  Icons.calendar_today,
+                                  t.issueDate,
+                                  tx.issueDate.toString().split(' ')[0]),
+                              _buildInfoRow(
+                                  Icons.event_repeat,
+                                  'সম্ভাব্য ফেরত',
+                                  tx.expectedReturn.toString().split(' ')[0]),
+                              if (tx.status == TransactionStatus.returned &&
+                                  tx.actualReturn != null)
+                                _buildInfoRow(
+                                    Icons.event,
+                                    t.returnDate,
+                                    tx.actualReturn!
+                                        .toString()
+                                        .split(' ')[0]),
+                            ] else ...[
+                              const ListTile(
+                                leading: Icon(Icons.info_outline),
+                                title: Text('বর্তমানে ধার দেওয়া অবস্থায় আছে'),
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -423,28 +419,140 @@ class _RequestBookBottomBarState extends ConsumerState<_RequestBookBottomBar> {
     if (authState.userId == null) return const SizedBox.shrink();
 
     final txAsync = ref.watch(userTransactionsProvider(authState.userId!));
+    final activeBookTxAsync =
+        ref.watch(activeBookTransactionProvider(widget.book.accessionNo));
     final t = ref.watch(translationProvider);
 
     return txAsync.when(
       data: (transactions) {
-        final hasActiveOrPending = transactions.any((tx) =>
+        final requestedTx = transactions.cast<LibraryTransaction?>().firstWhere(
+          (tx) =>
+              tx?.accessionNo == widget.book.accessionNo &&
+              tx?.status == TransactionStatus.requested,
+          orElse: () => null,
+        );
+
+        if (requestedTx != null) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.hourglass_empty_rounded,
+                            size: 18, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text(
+                          'আপনার রিকোয়েস্টটি পেন্ডিং রয়েছে',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('রিকোয়েস্ট বাতিল করবেন?'),
+                            content: const Text(
+                                'আপনি কি নিশ্চিত যে এই কিতাবের রিকোয়েস্টটি বাতিল করতে চান?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('না'),
+                              ),
+                              FilledButton(
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.red),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('হ্যাঁ, বাতিল করুন'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true && context.mounted) {
+                          final repo = ref.read(transactionRepositoryProvider);
+                          await repo.deleteTransaction(requestedTx.trxId);
+                          ref.read(syncQueueProvider.notifier).processQueue();
+                          ref.invalidate(
+                              userTransactionsProvider(authState.userId!));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('রিকোয়েস্ট বাতিল করা হয়েছে'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                      label: const Text(
+                        'রিকোয়েস্ট বাতিল করুন',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final activeBookTx = activeBookTxAsync.value;
+        final hasActiveMine = transactions.any((tx) =>
             tx.accessionNo == widget.book.accessionNo &&
-            (tx.status == TransactionStatus.requested ||
-                tx.status == TransactionStatus.active ||
+            (tx.status == TransactionStatus.active ||
                 tx.status == TransactionStatus.overdue));
 
-        final isAvailable = widget.book.status == BookStatus.available;
+        final isLentToOther = (activeBookTx != null &&
+                activeBookTx.userId != authState.userId) ||
+            widget.book.status == BookStatus.lent;
 
-        if (hasActiveOrPending || !isAvailable) {
+        final isAvailable =
+            widget.book.status == BookStatus.available && activeBookTx == null;
+
+        if (hasActiveMine || isLentToOther || !isAvailable) {
           String message = '';
-          if (hasActiveOrPending) {
-            message = 'এই কিতাবটি আপনার কাছে আছে বা রিকোয়েস্ট করা হয়েছে';
+          if (hasActiveMine) {
+            message = 'এই কিতাবটি বর্তমানে আপনার কাছে আছে';
+          } else if (isLentToOther) {
+            message = 'এই কিতাবটি বর্তমানে অন্য একজন শিক্ষকের কাছে আছে';
           } else if (widget.book.status == BookStatus.lost) {
             message = 'এই কিতাবটি হারিয়ে গেছে';
           } else if (widget.book.status == BookStatus.damaged) {
             message = 'এই কিতাবটি নষ্ট হয়ে গেছে';
-          } else if (widget.book.status == BookStatus.lent) {
-            message = 'এই কিতাবটি বর্তমানে বিতরণকৃত (অন্য কারও কাছে আছে)';
           } else if (widget.book.status == BookStatus.referenceOnly) {
             message = 'এই কিতাবটি শুধুমাত্র রেফারেন্সের জন্য সংরক্ষিত';
           } else {
@@ -492,6 +600,22 @@ class _RequestBookBottomBarState extends ConsumerState<_RequestBookBottomBar> {
                   child: FilledButton.icon(
                     onPressed: () async {
                       final repo = ref.read(transactionRepositoryProvider);
+
+                      // Double check if the book has been lent in the meantime
+                      final currentActive = await repo.getActiveTransactionForBook(widget.book.accessionNo);
+                      final freshBook = await ref.read(bookRepositoryProvider).getBookByAccessionNo(widget.book.accessionNo);
+                      if (currentActive != null || freshBook?.status == BookStatus.lent) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('এই কিতাবটি বর্তমানে অন্য একজন শিক্ষকের কাছে আছে। রিকোয়েস্ট পাঠানো সম্ভব নয়।'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
                       final tx = LibraryTransaction(
                         trxId: const Uuid().v4(),
                         accessionNo: widget.book.accessionNo,
@@ -511,7 +635,17 @@ class _RequestBookBottomBarState extends ConsumerState<_RequestBookBottomBar> {
                       ref.invalidate(userTransactionsProvider(authState.userId!));
 
                       if (_sendToWhatsApp) {
-                        final adminPhone = ref.read(appSettingsProvider).adminWhatsAppNumber;
+                        String? adminPhone = ref.read(appSettingsProvider).adminWhatsAppNumber;
+                        if (adminPhone == null || adminPhone.trim().isEmpty) {
+                          final db = await ref.read(databaseHelperProvider).database;
+                          final rows = await db.rawQuery("SELECT phone FROM users WHERE LOWER(type) = 'admin' AND phone IS NOT NULL AND TRIM(phone) != '' LIMIT 1");
+                          if (rows.isNotEmpty) {
+                            adminPhone = rows.first['phone']?.toString();
+                            if (adminPhone != null && adminPhone.trim().isNotEmpty) {
+                              await ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(adminPhone.trim());
+                            }
+                          }
+                        }
                         if (adminPhone != null && adminPhone.isNotEmpty) {
                           final formattedPhone = adminPhone.replaceAll(RegExp(r'[^0-9]'), '');
                           final teacherInfo = (authState.userName != null && authState.userName!.trim().isNotEmpty)

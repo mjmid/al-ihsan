@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/madrasa_app_bar_title.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/providers.dart';
 import '../../../../core/repositories/user_repository.dart';
@@ -32,7 +31,6 @@ class _AddEditUserPageState extends ConsumerState<AddEditUserPage> {
   void initState() {
     super.initState();
     final isEdit = widget.user != null;
-    final t = ref.watch(translationProvider);
 
     _userIdController =
         TextEditingController(text: isEdit ? widget.user!.userId : '');
@@ -62,7 +60,6 @@ class _AddEditUserPageState extends ConsumerState<AddEditUserPage> {
   void _saveUser() async {
     if (_formKey.currentState!.validate()) {
       final isEdit = widget.user != null;
-      final t = ref.watch(translationProvider);
 
       // If it's a new non-student user, PIN is required.
       if (!isEdit &&

@@ -1,7 +1,7 @@
 name: maktaba_ihsan
 description: "Maktaba Ihsan - Free Madrasa Library Management System"
 publish_to: 'none'
-version: 1.0.3+3
+version: 1.0.9+9
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -53,6 +53,7 @@ dependencies:
   csv: ^6.0.0                     # CSV generation for DB export
   share_plus: ^9.0.0              # Share/export files
   permission_handler: ^11.3.1     # Storage permission for export
+  file_picker: ^8.0.0            # File selection for CSV bulk import
 
   # â”€â”€ Voice Typing (Teacher Notepad) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   speech_to_text: ^6.6.2          # Voice-to-text for notes

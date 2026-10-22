@@ -8,6 +8,7 @@ import '../repositories/transaction_repository.dart';
 import '../services/api_service.dart';
 import '../services/sync_service.dart';
 import '../services/sync_queue_service.dart';
+export '../services/sync_queue_service.dart';
 
 /// ============================================================
 /// MAKTABA IHSAN — Central Providers File
@@ -50,11 +51,7 @@ final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService.instance;
 });
 
-/// Sync Queue — manages offline operation queue.
-final syncQueueProvider =
-    StateNotifierProvider<SyncQueueNotifier, List<SyncOperation>>(
-  (ref) => SyncQueueNotifier(),
-);
+
 
 /// Sync Service — orchestrates delta sync and initial bulk sync.
 final syncServiceProvider = FutureProvider<SyncService>((ref) async {

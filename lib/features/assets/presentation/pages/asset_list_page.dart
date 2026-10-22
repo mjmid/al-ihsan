@@ -109,75 +109,88 @@ class _AssetListPageState extends ConsumerState<AssetListPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Expandable Search Bar (when opened)
-                      if (_isSearchOpen)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 6.0, 16.0, 6.0),
-                          child: Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: colorScheme.primary.withOpacity(0.4),
-                                width: 1.2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withOpacity(0.06),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              focusNode: _searchFocusNode,
-                              autofocus: true,
-                              decoration: InputDecoration(
-                                hintText: t.searchAssetsHint,
-                                prefixIcon: Icon(Icons.search_rounded,
-                                    color: colorScheme.primary, size: 20),
-                                suffixIcon: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (searchQuery.isNotEmpty)
-                                      IconButton(
-                                        icon: const Icon(Icons.clear_rounded, size: 18),
-                                        tooltip: 'মুছে ফেলুন',
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          ref
-                                              .read(assetSearchQueryProvider.notifier)
-                                              .state = '';
-                                        },
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close_rounded, size: 20),
-                                      tooltip: 'বন্ধ করুন',
-                                      onPressed: () {
-                                        setState(() {
-                                          _isSearchOpen = false;
-                                          _searchFocusNode.unfocus();
-                                        });
-                                      },
+                      // Expandable Search Bar (when opened, smoothly animated)
+                      ClipRect(
+                        child: AnimatedAlign(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOutCubic,
+                          alignment: Alignment.topCenter,
+                          heightFactor: _isSearchOpen ? 1.0 : 0.0,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            opacity: _isSearchOpen ? 1.0 : 0.0,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16.0, 6.0, 16.0, 6.0),
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest.withOpacity(0.65),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: colorScheme.primary.withOpacity(0.4),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: colorScheme.primary.withOpacity(0.06),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
+                                child: TextField(
+                                  controller: _searchController,
+                                  focusNode: _searchFocusNode,
+                                  autofocus: false,
+                                  decoration: InputDecoration(
+                                    hintText: t.searchAssetsHint,
+                                    prefixIcon: Icon(Icons.search_rounded,
+                                        color: colorScheme.primary, size: 20),
+                                    suffixIcon: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (searchQuery.isNotEmpty)
+                                          IconButton(
+                                            icon: const Icon(Icons.clear_rounded, size: 18),
+                                            tooltip: 'মুছে ফেলুন',
+                                            onPressed: () {
+                                              _searchController.clear();
+                                              ref
+                                                  .read(assetSearchQueryProvider.notifier)
+                                                  .state = '';
+                                            },
+                                          ),
+                                        IconButton(
+                                          icon: const Icon(Icons.close_rounded, size: 20),
+                                          tooltip: 'বন্ধ করুন',
+                                          onPressed: () {
+                                            setState(() {
+                                              _isSearchOpen = false;
+                                              _searchFocusNode.unfocus();
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    border: InputBorder.none,
+                                  ),
+                                  onChanged: (value) {
+                                    ref
+                                        .read(assetSearchQueryProvider.notifier)
+                                        .state = value;
+                                    setState(() {});
+                                  },
                                 ),
-                                border: InputBorder.none,
                               ),
-                              onChanged: (value) {
-                                ref
-                                    .read(assetSearchQueryProvider.notifier)
-                                    .state = value;
-                              },
                             ),
                           ),
                         ),
+                      ),
 
                       // Action bar with Search Icon on the left
                       Padding(

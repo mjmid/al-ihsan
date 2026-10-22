@@ -1,11 +1,11 @@
 {
-    "name": "মাকতাবাতু ইহসান",
-    "short_name": "মাকতাবাতু ইহসান",
+    "name": "Al Ihsan",
+    "short_name": "Al Ihsan",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#1F9E5C",
-    "description": "মাকতাবাতু ইহসান - ডিজিটাল লাইব্রেরি ম্যানেজমেন্ট সিস্টেম",
+    "description": "আল ইহসান- জামেআ মারকাযুল ইহসান ঢাকা এর ডিজিটাল লাইব্রেরি ম্যানেজমেন্ট সিস্টেম",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

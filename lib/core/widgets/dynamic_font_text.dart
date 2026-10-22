@@ -20,9 +20,9 @@ class DynamicFontText extends StatelessWidget {
   String? _detectFontFamily(String text) {
     if (text.isEmpty) return null;
 
-    // Urdu specific characters
+    // Urdu & Persian specific characters
     final urduRegex = RegExp(
-        r'[\u067E\u0686\u0698\u06AF\u06D2\u0688\u0691\u0679\u06BA\u06C1\u06BE]');
+        r'[\u067E\u0686\u0698\u06AF\u06D2\u06D3\u0688\u0691\u0679\u06BA\u06C1\u06C2\u06C3\u06BE\u0654\u0657\u0658\u06A9\u06CC]');
     if (urduRegex.hasMatch(text)) {
       return 'UrduNastaleeq';
     }
@@ -55,10 +55,45 @@ class DynamicFontText extends StatelessWidget {
       dynamicStyle = dynamicStyle.copyWith(fontSize: defaultSize);
     }
 
+    final List<String> fallbackList;
+    if (fontFamily == 'UrduNastaleeq') {
+      fallbackList = const [
+        'ArabicMyLotus',
+        'ArabicUthmanic',
+        'BengaliSolaiman',
+        'sans-serif',
+      ];
+    } else if (fontFamily == 'ArabicMyLotus') {
+      fallbackList = const [
+        'UrduNastaleeq',
+        'ArabicUthmanic',
+        'BengaliSolaiman',
+        'sans-serif',
+      ];
+    } else if (fontFamily == 'BengaliSolaiman') {
+      fallbackList = const [
+        'ArabicMyLotus',
+        'UrduNastaleeq',
+        'sans-serif',
+      ];
+    } else {
+      fallbackList = const [
+        'BengaliSolaiman',
+        'ArabicMyLotus',
+        'UrduNastaleeq',
+        'sans-serif',
+      ];
+    }
+
     if (fontFamily == 'Nunito') {
-      dynamicStyle = GoogleFonts.nunito(textStyle: dynamicStyle);
+      dynamicStyle = GoogleFonts.nunito(textStyle: dynamicStyle).copyWith(
+        fontFamilyFallback: fallbackList,
+      );
     } else if (fontFamily != null) {
-      dynamicStyle = dynamicStyle.copyWith(fontFamily: fontFamily);
+      dynamicStyle = dynamicStyle.copyWith(
+        fontFamily: fontFamily,
+        fontFamilyFallback: fallbackList,
+      );
 
       // Increase font size significantly for Arabic and Urdu for better readability
       if (fontFamily == 'UrduNastaleeq' && dynamicStyle.fontSize != null) {

@@ -6,8 +6,14 @@ import 'package:maktaba_ihsan/core/theme/neu_card.dart';
 import 'package:maktaba_ihsan/features/auth/presentation/pages/login_page.dart';
 import 'package:maktaba_ihsan/core/providers/auth_provider.dart';
 import 'package:maktaba_ihsan/core/providers/mode_provider.dart';
+import 'package:maktaba_ihsan/core/providers/providers.dart';
+import 'package:maktaba_ihsan/core/services/supabase_client.dart';
 import 'package:maktaba_ihsan/core/models/user_model.dart';
 import 'package:maktaba_ihsan/features/teacher/presentation/widgets/teacher_backup_dialog.dart';
+import 'package:maktaba_ihsan/features/books/presentation/pages/csv_import_books_page.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:maktaba_ihsan/core/services/pwa_install/pwa_install_service.dart';
+import 'package:maktaba_ihsan/core/widgets/app_install_bottom_banner.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -123,10 +129,33 @@ class SettingsPage extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 12),
-          _AdminWhatsAppField(
-            initialValue: settings.adminWhatsAppNumber ?? '',
-            onSave: (val) {
-              ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(val);
+          _buildManagementCard(
+            context: context,
+            icon: Icons.chat_rounded,
+            iconColor: const Color(0xFF25D366),
+            title: t.adminWhatsAppNumberLabel,
+            subtitle: (settings.adminWhatsAppNumber != null &&
+                    settings.adminWhatsAppNumber!.trim().isNotEmpty)
+                ? settings.adminWhatsAppNumber!
+                : 'সেট করা নেই — ক্লিক করে সেট করুন',
+            onTap: () {
+              _showAdminWhatsAppDialog(context, ref);
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildManagementCard(
+            context: context,
+            icon: Icons.upload_file_rounded,
+            iconColor: Colors.deepPurple,
+            title: 'কিতাব বাল্ক ইম্পোর্ট (.csv)',
+            subtitle: 'গুগল শিট থেকে .csv আপলোড করে একসাথে কিতাব যুক্ত করুন',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CsvImportBooksPage(),
+                ),
+              );
             },
           ),
           const SizedBox(height: 24),
@@ -143,6 +172,38 @@ class SettingsPage extends ConsumerWidget {
           subtitle: t.teacherBackupCardSubtitle,
           onTap: () {
             TeacherBackupDialog.show(context);
+          },
+        ),
+        const SizedBox(height: 24),
+
+        // Installation & App Update Section
+        _buildSectionHeader(context, Icons.system_update_rounded, 'ইনস্টলেশন ও আপডেট'),
+        const SizedBox(height: 12),
+        _buildManagementCard(
+          context: context,
+          icon: Icons.install_mobile_rounded,
+          iconColor: Colors.teal,
+          title: 'অ্যাপ ইনস্টল করুন',
+          subtitle: PwaInstallService.isAppInstalled()
+              ? 'অ্যাপটি ইতিমধ্যে ডিভাইসে ইনস্টল করা আছে'
+              : 'পিসি, অ্যান্ড্রয়েড বা আইফোনে সরাসরি ইনস্টল করুন',
+          trailing: PwaInstallService.isAppInstalled()
+              ? const Icon(Icons.check_circle_rounded, color: Colors.green)
+              : const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () {
+            AppInstallBottomBanner.showInstallDialog(context);
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildManagementCard(
+          context: context,
+          icon: Icons.sync_rounded,
+          iconColor: Colors.blue,
+          title: 'অ্যাপ আপডেট চেক করুন',
+          subtitle: 'বর্তমান ভার্সন v${PwaInstallService.currentVersion} • নতুন আপডেট দেখুন',
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () {
+            _handleCheckUpdate(context);
           },
         ),
         const SizedBox(height: 24),
@@ -421,35 +482,29 @@ class _SegmentData {
   });
 }
 
-class _AdminWhatsAppField extends ConsumerStatefulWidget {
-  final String initialValue;
-  final ValueChanged<String> onSave;
-
-  const _AdminWhatsAppField({
-    required this.initialValue,
-    required this.onSave,
-  });
-
-  @override
-  ConsumerState<_AdminWhatsAppField> createState() => _AdminWhatsAppFieldState();
+void _showAdminWhatsAppDialog(BuildContext context, WidgetRef ref) {
+  showDialog(
+    context: context,
+    builder: (ctx) => const _AdminWhatsAppDialog(),
+  );
 }
 
-class _AdminWhatsAppFieldState extends ConsumerState<_AdminWhatsAppField> {
+class _AdminWhatsAppDialog extends ConsumerStatefulWidget {
+  const _AdminWhatsAppDialog();
+
+  @override
+  ConsumerState<_AdminWhatsAppDialog> createState() => _AdminWhatsAppDialogState();
+}
+
+class _AdminWhatsAppDialogState extends ConsumerState<_AdminWhatsAppDialog> {
   late TextEditingController _controller;
-  bool _isSaved = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void didUpdateWidget(covariant _AdminWhatsAppField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialValue != widget.initialValue && _controller.text != widget.initialValue) {
-      _controller.text = widget.initialValue;
-    }
+    final current = ref.read(appSettingsProvider).adminWhatsAppNumber ?? '';
+    _controller = TextEditingController(text: current);
   }
 
   @override
@@ -458,81 +513,409 @@ class _AdminWhatsAppFieldState extends ConsumerState<_AdminWhatsAppField> {
     super.dispose();
   }
 
-  void _handleSave() {
-    final number = _controller.text.trim();
-    widget.onSave(number);
-    FocusScope.of(context).unfocus();
-    setState(() => _isSaved = true);
+  Future<void> _save() async {
     final t = ref.read(translationProvider);
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Expanded(child: Text(t.adminWhatsAppSavedSuccess)),
-          ],
+    final number = _controller.text.trim();
+
+    setState(() => _isLoading = true);
+    try {
+      // 1. Save to local settings (Hive)
+      await ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(number);
+
+      // 2. Update local SQLite users table for Admin
+      final db = await ref.read(databaseHelperProvider).database;
+      final nowUtc = DateTime.now().toUtc().toIso8601String();
+      await db.rawUpdate(
+        "UPDATE users SET phone = ?, last_updated = ? WHERE LOWER(type) = 'admin'",
+        [number, nowUtc],
+      );
+
+      // 3. Enqueue change to GAS and Supabase if active
+      ref.read(syncQueueProvider.notifier).enqueue(
+        SyncOperation.create(
+          sheet: 'Users',
+          action: 'upsert',
+          payload: {
+            'user_id': 'admin',
+            'phone': number,
+            'last_updated': nowUtc,
+          },
         ),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _isSaved = false);
-    });
+      );
+      try {
+        await supabaseClient
+            .from('users')
+            .update({'phone': number, 'last_updated': nowUtc})
+            .ilike('type', 'admin');
+      } catch (_) {}
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(t.adminWhatsAppSavedSuccess)),
+              ],
+            ),
+            backgroundColor: const Color(0xFF25D366),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('ত্রুটি: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationProvider);
-    final colorScheme = Theme.of(context).colorScheme;
+    final settings = ref.watch(appSettingsProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final currentNumber = settings.adminWhatsAppNumber;
+    final hasNumber = currentNumber != null && currentNumber.trim().isNotEmpty;
 
-    return NeuCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 420),
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF25D366).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.adminWhatsAppNumberLabel,
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'শিক্ষকদের বই রিকোয়েস্ট এই নম্বরে আসবে',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? Colors.white60 : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
-            child: const Icon(Icons.phone_android, color: Colors.green, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: TextFormField(
+            const SizedBox(height: 18),
+
+            // Status Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: hasNumber
+                    ? const Color(0xFF25D366).withOpacity(0.08)
+                    : Colors.orange.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: hasNumber
+                      ? const Color(0xFF25D366).withOpacity(0.3)
+                      : Colors.orange.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    hasNumber ? Icons.check_circle : Icons.info_outline,
+                    color: hasNumber ? const Color(0xFF25D366) : Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      hasNumber
+                          ? 'বর্তমান নম্বর: $currentNumber'
+                          : 'কোনো হোয়াটসঅ্যাপ নম্বর যুক্ত নেই',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: hasNumber
+                            ? (isDark ? const Color(0xFF5BE29B) : const Color(0xFF1E7E34))
+                            : Colors.orange.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Input Field
+            TextField(
               controller: _controller,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: t.adminWhatsAppNumberLabel,
-                hintText: t.adminWhatsAppNumberHint,
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                labelText: 'হোয়াটসঅ্যাপ নম্বর লিখুন',
+                hintText: '০১৭১২৩৪৫৬৭৮ বা +৮৮০১...',
+                prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF25D366)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
-              onFieldSubmitted: (_) => _handleSave(),
             ),
+            const SizedBox(height: 12),
+            Text(
+              'নোট: শিক্ষকরা কিতাব ধার নেওয়ার রিকোয়েস্ট পাঠানোর সময় সরাসরি এই নম্বরে হোয়াটসঅ্যাপ মেসেজ পাঠাতে পারবেন।',
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white54 : Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 22),
+
+            // Actions
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(t.cancel),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.save_outlined, size: 18),
+                  label: Text(
+                    t.saveBtn,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: _isLoading ? null : _save,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _handleCheckUpdate(BuildContext context) async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => const Center(
+      child: Card(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('আপডেট চেক করা হচ্ছে...', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
           ),
-          const SizedBox(width: 8),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isSaved ? Colors.green : colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              elevation: 0,
-            ),
-            icon: Icon(_isSaved ? Icons.check : Icons.save_outlined, size: 16),
-            label: Text(
-              _isSaved ? t.saved : t.saveBtn,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-            onPressed: _handleSave,
+        ),
+      ),
+    ),
+  );
+
+  final info = await PwaInstallService.checkForUpdate();
+
+  if (context.mounted) {
+    Navigator.pop(context); // close loader
+  }
+
+  if (!context.mounted) return;
+
+  if (info == null) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('আপডেট চেক ব্যর্থ হয়েছে'),
+        content: const Text(
+          'সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। আপনার ইন্টারনেট সংযোগ পরীক্ষা করে পুনরায় চেষ্টা করুন।',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ঠিক আছে'),
           ),
         ],
       ),
     );
+    return;
   }
+
+  if (!info.hasUpdate) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: Color(0xFF1F9E5C)),
+            SizedBox(width: 8),
+            Text('অ্যাপ আপ-টু-ডেট আছে'),
+          ],
+        ),
+        content: Text(
+          'আপনার অ্যাপটি ইতিমধ্যে সর্বশেষ ভার্সনে (v${info.currentVersion}) আছে। নতুন কোনো আপডেট নেই।',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ঠিক আছে'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
+
+  // Update is available
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1F9E5C).withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.system_update_rounded, color: Color(0xFF1F9E5C)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'নতুন আপডেট পাওয়া গেছে! (v${info.latestVersion})',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (info.releaseDate.isNotEmpty) ...[
+              Text(
+                'প্রকাশের তারিখ: ${info.releaseDate}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (info.changelog.isNotEmpty) ...[
+              const Text(
+                'নতুন কী আসছে:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              Text(info.changelog, style: const TextStyle(fontSize: 13)),
+              const SizedBox(height: 12),
+            ],
+            Text(
+              PwaInstallService.isWeb
+                  ? 'এখনই আপডেট বোতামে চাপলে নতুন ফাইল লোড হয়ে অ্যাপ স্বয়ংক্রিয়ভাবে আপডেট হয়ে যাবে।'
+                  : 'নতুন APK ফাইলটি ডাউনলোড করে ইনস্টল করে আপডেট সম্পন্ন করুন।',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('পরে'),
+        ),
+        if (PwaInstallService.isWeb) ...[
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF1F9E5C),
+            ),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('এখনই আপডেট করুন'),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await PwaInstallService.forceUpdateReload();
+            },
+          ),
+        ] else ...[
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF1F9E5C),
+            ),
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: const Text('সব মোবাইলের APK'),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await launchUrl(
+                Uri.parse(info.apkUrlArm64),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: const Text('পুরাতন মোবাইলের APK'),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await launchUrl(
+                Uri.parse(info.apkUrlArmV7),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+        ],
+      ],
+    ),
+  );
 }

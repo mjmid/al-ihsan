@@ -123,7 +123,6 @@ class _AddEditTransactionPageState
   void _saveTransaction() async {
     if (_formKey.currentState!.validate()) {
       final isEdit = widget.transaction != null;
-      final t = ref.watch(translationProvider);
       final repository = ref.read(transactionRepositoryProvider);
       final settings = ref.read(appSettingsProvider);
 
@@ -133,10 +132,23 @@ class _AddEditTransactionPageState
           final bookRepo = ref.read(bookRepositoryProvider);
           final userRepo = ref.read(userRepositoryProvider);
 
-          final book =
-              await bookRepo.getBookByAccessionNo(_bookIdController.text);
+          final bookId = _bookIdController.text.trim();
+          final book = await bookRepo.getBookByAccessionNo(bookId);
           if (book == null) {
-            _showError('কিতাব পাওয়া যায়নি। অ্যাকসেশন নম্বর চেক করুন।');
+            _showError('কিতাব পাওয়া যায়নি। কিতাব নম্বর চেক করুন।');
+            return;
+          }
+
+          // Check if book is already lent out
+          final activeTx = await repository.getActiveTransactionForBook(bookId);
+          if (activeTx != null || book.status == BookStatus.lent) {
+            final borrower = activeTx?.userName != null
+                ? '${activeTx!.userName} (সদস্য আইডি: ${activeTx.userId})'
+                : (activeTx?.userId != null
+                    ? 'সদস্য আইডি: ${activeTx!.userId}'
+                    : 'অন্য একজন শিক্ষক');
+            _showError(
+                'এই কিতাবটি বর্তমানে $borrower এর কাছে ধার দেওয়া রয়েছে। ফেরত নেওয়ার পূর্বে এটি পুনরায় ধার দেওয়া যাবে না।');
             return;
           }
 
@@ -148,7 +160,7 @@ class _AddEditTransactionPageState
           }
 
           final result = await repository.issueBook(
-            _bookIdController.text.trim(),
+            bookId,
             _userIdController.text.trim(),
             _expectedReturn,
           );
@@ -162,14 +174,25 @@ class _AddEditTransactionPageState
           final authState = ref.read(authProvider);
           final isAdmin = authState.userType == UserType.admin;
           if (!isAdmin && _sendWhatsapp) {
-            final adminPhone = settings.adminWhatsAppNumber;
+            String? adminPhone = settings.adminWhatsAppNumber;
+            if (adminPhone == null || adminPhone.trim().isEmpty) {
+              final db = await ref.read(databaseHelperProvider).database;
+              final rows = await db.rawQuery("SELECT phone FROM users WHERE LOWER(type) = 'admin' AND phone IS NOT NULL AND TRIM(phone) != '' LIMIT 1");
+              if (rows.isNotEmpty) {
+                adminPhone = rows.first['phone']?.toString();
+              }
+            }
             if (adminPhone != null && adminPhone.isNotEmpty) {
+              final formattedPhone = adminPhone.replaceAll(RegExp(r'[^0-9]'), '');
               final String message = "আসসালামু আলাইকুম।\nআমি '${book.bookName}' কিতাবটির জন্য রিকোয়েস্ট পাঠিয়েছি।\nআমার আইডি: ${user.userId}\nনাম: ${user.name}";
-              final url = Uri.parse("whatsapp://send?phone=$adminPhone&text=${Uri.encodeComponent(message)}");
+              final url = Uri.parse("whatsapp://send?phone=$formattedPhone&text=${Uri.encodeComponent(message)}");
               // Using try-catch around url_launcher so it doesn't break if whatsapp not installed
               try {
                 if (await canLaunchUrl(url)) {
                   await launchUrl(url);
+                } else {
+                  final fallbackUrl = Uri.parse("https://wa.me/$formattedPhone?text=${Uri.encodeComponent(message)}");
+                  await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
                 }
               } catch (_) {}
             }
@@ -188,6 +211,7 @@ class _AddEditTransactionPageState
         }
 
         // Refresh lists
+        ref.invalidate(allTransactionsProvider);
         ref.invalidate(transactionsListProvider);
 
         ref.invalidate(bookRepositoryProvider);
@@ -219,6 +243,9 @@ class _AddEditTransactionPageState
   Widget build(BuildContext context) {
     final isEdit = widget.transaction != null;
     final t = ref.watch(translationProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -233,16 +260,18 @@ class _AddEditTransactionPageState
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: Text('ডিলিট করুন'),
-                    content: Text('আপনি কি নিশ্চিত যে এই রিকোয়েস্ট বা লেনদেনটি ডিলিট করতে চান?'),
+                    title: const Text('ডিলিট করুন'),
+                    content: const Text(
+                        'আপনি কি নিশ্চিত যে এই রিকোয়েস্ট বা লেনদেনটি ডিলিট করতে চান?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: Text('বাতিল করুন'),
+                        child: const Text('বাতিল করুন'),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: Text('ডিলিট', style: TextStyle(color: Colors.red)),
+                        child: const Text('ডিলিট',
+                            style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
@@ -250,14 +279,19 @@ class _AddEditTransactionPageState
 
                 if (confirm == true && mounted) {
                   try {
-                    await ref.read(transactionRepositoryProvider).deleteTransaction(widget.transaction!.trxId);
+                    await ref
+                        .read(transactionRepositoryProvider)
+                        .deleteTransaction(widget.transaction!.trxId);
+                    ref.read(syncQueueProvider.notifier).processQueue();
+                    ref.invalidate(allTransactionsProvider);
                     ref.invalidate(transactionsListProvider);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('সফলভাবে ডিলিট করা হয়েছে')),
-                      );
-                      Navigator.pop(context);
-                    }
+                    ref.invalidate(
+                        userTransactionsProvider(widget.transaction!.userId));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('সফলভাবে ডিলিট করা হয়েছে')),
+                    );
+                    Navigator.pop(context);
                   } catch (e) {
                     _showError('ডিলিট করতে সমস্যা হয়েছে: $e');
                   }
@@ -273,9 +307,21 @@ class _AddEditTransactionPageState
           children: [
             TextFormField(
               controller: _bookIdController,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
               decoration: InputDecoration(
                 labelText: t.bookAccessionNo,
-                border: OutlineInputBorder(),
+                labelStyle: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+                border: const OutlineInputBorder(),
+                disabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                  ),
+                ),
               ),
               enabled: !isEdit,
               validator: (value) =>
@@ -287,6 +333,9 @@ class _AddEditTransactionPageState
                 builder: (context, ref, child) {
                   final bookAsync =
                       ref.watch(bookByAccessionNoProvider(_currentBookId));
+                  final activeTxAsync =
+                      ref.watch(activeBookTransactionProvider(_currentBookId));
+
                   return bookAsync.when(
                     data: (book) {
                       if (book == null) {
@@ -307,34 +356,59 @@ class _AddEditTransactionPageState
                           ),
                         );
                       }
+
+                      final activeTx = activeTxAsync.value;
+                      final isLent = book.status == BookStatus.lent || activeTx != null;
+
                       return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.08),
+                          color: isLent
+                              ? (isDark
+                                  ? const Color(0xFF331515)
+                                  : Colors.red.withOpacity(0.08))
+                              : (isDark
+                                  ? const Color(0xFF162B21)
+                                  : Colors.green.withOpacity(0.08)),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.withOpacity(0.3)),
+                          border: Border.all(
+                            color: isLent
+                                ? Colors.red.withOpacity(0.4)
+                                : (isDark
+                                    ? const Color(0xFF2E6B47)
+                                    : Colors.green.withOpacity(0.3)),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             DynamicFontText(
                               book.bookName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: Colors.green,
+                                color: isLent
+                                    ? Colors.red
+                                    : (isDark
+                                        ? const Color(0xFF5BE29B)
+                                        : Colors.green.shade800),
                               ),
                             ),
                             if (book.volumeNo != null && book.volumeNo!.trim().isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.format_list_numbered, size: 14, color: Colors.grey.shade600),
+                                  Icon(Icons.format_list_numbered,
+                                      size: 14,
+                                      color: isDark ? Colors.white60 : Colors.grey.shade600),
                                   const SizedBox(width: 6),
-                                  Text('খণ্ড: ${book.volumeNo!.toEnglishNumerals}',
-                                      style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 13)),
+                                  Text(
+                                    'খণ্ড: ${book.volumeNo!.toEnglishNumerals}',
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -342,12 +416,17 @@ class _AddEditTransactionPageState
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.person_outline, size: 14, color: Colors.grey.shade600),
+                                  Icon(Icons.person_outline,
+                                      size: 14,
+                                      color: isDark ? Colors.white60 : Colors.grey.shade600),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: DynamicFontText(
                                       book.author!,
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -357,15 +436,64 @@ class _AddEditTransactionPageState
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.business_outlined, size: 14, color: Colors.grey.shade600),
+                                  Icon(Icons.business_outlined,
+                                      size: 14,
+                                      color: isDark ? Colors.white60 : Colors.grey.shade600),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: DynamicFontText(
                                       book.publisher!,
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                 ],
+                              ),
+                            ],
+                            if (isLent) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.red.withOpacity(0.4)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'এই কিতাবটি বর্তমানে ধার দেওয়া রয়েছে!',
+                                            style: TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          if (activeTx != null) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'গ্রহীতা: ${activeTx.userName ?? 'সদস্য'} (আইডি: ${activeTx.userId})',
+                                              style: TextStyle(
+                                                color: isDark ? Colors.red.shade200 : Colors.red.shade900,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ],
@@ -391,9 +519,21 @@ class _AddEditTransactionPageState
             const SizedBox(height: 16),
             TextFormField(
               controller: _userIdController,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
               decoration: InputDecoration(
                 labelText: t.memberId,
+                labelStyle: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
                 border: const OutlineInputBorder(),
+                disabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                  ),
+                ),
               ),
               enabled: !isEdit && widget.prefilledUserId == null,
               validator: (value) =>
@@ -428,9 +568,15 @@ class _AddEditTransactionPageState
                       return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.25),
+                          color: isDark
+                              ? const Color(0xFF162B21)
+                              : colorScheme.primaryContainer.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF2E6B47)
+                                : colorScheme.primary.withOpacity(0.3),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,11 +585,13 @@ class _AddEditTransactionPageState
                               children: [
                                 CircleAvatar(
                                   radius: 16,
-                                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                  backgroundColor: isDark
+                                      ? const Color(0xFF1E3F2E)
+                                      : colorScheme.primary.withOpacity(0.15),
                                   child: Icon(
                                     user?.type == UserType.teacher ? Icons.school_rounded : Icons.person,
                                     size: 18,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: isDark ? const Color(0xFF5BE29B) : colorScheme.primary,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -456,7 +604,7 @@ class _AddEditTransactionPageState
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
-                                          color: Theme.of(context).colorScheme.primary,
+                                          color: isDark ? const Color(0xFF5BE29B) : colorScheme.primary,
                                         ),
                                       ),
                                       if (user?.type != null) ...[
@@ -467,7 +615,7 @@ class _AddEditTransactionPageState
                                               : (user.type == UserType.student ? 'ছাত্র' : 'সদস্য'),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            color: isDark ? Colors.white70 : colorScheme.onSurfaceVariant,
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
@@ -481,10 +629,17 @@ class _AddEditTransactionPageState
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade600),
+                                  Icon(Icons.phone_outlined,
+                                      size: 14,
+                                      color: isDark ? Colors.white60 : Colors.grey.shade600),
                                   const SizedBox(width: 6),
-                                  Text(user.phone!,
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+                                  Text(
+                                    user.phone!,
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -496,19 +651,29 @@ class _AddEditTransactionPageState
                         ? Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.25),
+                              color: isDark
+                                  ? const Color(0xFF162B21)
+                                  : colorScheme.primaryContainer.withOpacity(0.25),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                              border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF2E6B47)
+                                    : colorScheme.primary.withOpacity(0.3),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.person, color: Theme.of(context).colorScheme.primary, size: 18),
+                                Icon(Icons.person,
+                                    color: isDark ? const Color(0xFF5BE29B) : colorScheme.primary,
+                                    size: 18),
                                 const SizedBox(width: 8),
-                                Text(widget.transaction!.userName!,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    )),
+                                Text(
+                                  widget.transaction!.userName!,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? const Color(0xFF5BE29B) : colorScheme.primary,
+                                  ),
+                                ),
                               ],
                             ),
                           )
@@ -538,7 +703,7 @@ class _AddEditTransactionPageState
                 controller: _issueDateController,
                 decoration: InputDecoration(
                   labelText: t.issueDate,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
                 readOnly: true,
                 onTap: () => _selectDate(context, true),
@@ -563,6 +728,67 @@ class _AddEditTransactionPageState
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('রিকোয়েস্ট বাতিল করবেন?'),
+                        content: const Text(
+                            'এই রিকোয়েস্টটি মুছে ফেলা হবে এবং শিক্ষক পুনরায় রিকোয়েস্ট পাঠাতে পারবেন।'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('না'),
+                          ),
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Colors.red),
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('হ্যাঁ, বাতিল করুন'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true && mounted) {
+                      try {
+                        await ref
+                            .read(transactionRepositoryProvider)
+                            .deleteTransaction(widget.transaction!.trxId);
+                        ref.read(syncQueueProvider.notifier).processQueue();
+                        ref.invalidate(allTransactionsProvider);
+                        ref.invalidate(transactionsListProvider);
+                        ref.invalidate(userTransactionsProvider(
+                            widget.transaction!.userId));
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('রিকোয়েস্ট বাতিল ও মুছে ফেলা হয়েছে'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      } catch (e) {
+                        _showError('রিকোয়েস্ট বাতিল করতে সমস্যা হয়েছে: $e');
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                  label: const Text(
+                    'রিকোয়েস্ট বাতিল / কেটে দিন',
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
               ] else if (widget.transaction!.status ==
@@ -595,10 +821,10 @@ class _AddEditTransactionPageState
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green),
-                      SizedBox(width: 8),
+                      const Icon(Icons.check_circle, color: Colors.green),
+                      const SizedBox(width: 8),
                       Text(t.bookReturned,
-                          style: TextStyle(
+                          style: const TextStyle(
                               color: Colors.green,
                               fontWeight: FontWeight.bold)),
                     ],
@@ -628,15 +854,27 @@ class _AddEditTransactionPageState
                   return const SizedBox.shrink();
                 }
               ),
-              FilledButton(
-                onPressed: _saveTransaction,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: Text(
-                  t.addTransaction,
-                  style: TextStyle(fontSize: 16),
-                ),
+              Consumer(
+                builder: (context, ref, child) {
+                  final activeTxAsync = ref.watch(activeBookTransactionProvider(_currentBookId));
+                  final bookAsync = ref.watch(bookByAccessionNoProvider(_currentBookId));
+                  final isLent = !isEdit && _currentBookId.trim().isNotEmpty && (
+                    bookAsync.value?.status == BookStatus.lent ||
+                    activeTxAsync.value != null
+                  );
+
+                  return FilledButton(
+                    onPressed: isLent ? null : _saveTransaction,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: isLent ? Colors.grey : null,
+                    ),
+                    child: Text(
+                      isLent ? 'কিতাবটি ধার দেওয়া অবস্থায় আছে' : t.addTransaction,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  );
+                },
               ),
             ],
           ],

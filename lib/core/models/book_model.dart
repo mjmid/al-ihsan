@@ -88,6 +88,23 @@ extension NumeralConversion on String {
     }
     return result;
   }
+
+  String get toBengaliNumerals {
+    const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const bengali = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+
+    String result = this;
+    for (int i = 0; i < 10; i++) {
+      result = result.replaceAll(english[i], bengali[i])
+                     .replaceAll(arabic[i], bengali[i]);
+    }
+    return result;
+  }
+}
+
+extension IntNumeralConversion on int {
+  String toBengaliNumerals() => toString().toBengaliNumerals;
 }
 
 // ---------------------------------------------------------------------------

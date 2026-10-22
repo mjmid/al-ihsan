@@ -33,6 +33,9 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
   final FocusNode _titleFocusNode = FocusNode();
   final FocusNode _editorFocusNode = FocusNode();
 
+  late String _titleAlignment;
+  late double _titleFontSize;
+
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _selectedLocaleId = 'bn-BD'; // Default to Bengali
@@ -48,6 +51,8 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.note?.title ?? '');
+    _titleAlignment = widget.note?.titleAlignment ?? 'left';
+    _titleFontSize = widget.note?.titleFontSize ?? 28.0;
     
     // Initialize Quill Controller
     if (widget.note != null && widget.note!.content.isNotEmpty) {
@@ -78,6 +83,18 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
     _titleFocusNode.dispose();
     _editorFocusNode.dispose();
     super.dispose();
+  }
+
+  TextAlign _getTitleTextAlign() {
+    switch (_titleAlignment) {
+      case 'center':
+        return TextAlign.center;
+      case 'right':
+        return TextAlign.right;
+      case 'left':
+      default:
+        return TextAlign.left;
+    }
   }
 
   String? _getFontForLocale(String localeId) {
@@ -205,11 +222,15 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
           content: contentJson, // Store JSON
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
+          titleAlignment: _titleAlignment,
+          titleFontSize: _titleFontSize,
         );
 
     if (widget.note != null) {
       note.title = title;
       note.content = contentJson;
+      note.titleAlignment = _titleAlignment;
+      note.titleFontSize = _titleFontSize;
       note.updatedAt = DateTime.now();
       note.save();
     } else {
@@ -352,6 +373,8 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
               final noteToShare = widget.note?.copyWith(
                     title: title,
                     content: contentJson,
+                    titleAlignment: _titleAlignment,
+                    titleFontSize: _titleFontSize,
                   ) ??
                   TeacherNote(
                     id: 'temp',
@@ -360,6 +383,8 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
                     content: contentJson,
                     createdAt: DateTime.now(),
                     updatedAt: DateTime.now(),
+                    titleAlignment: _titleAlignment,
+                    titleFontSize: _titleFontSize,
                   );
 
               if (val == 'share_pdf') {
@@ -520,14 +545,107 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 8),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.title, size: 18, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          'শিরনাম:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          icon: const Icon(Icons.format_align_left, size: 18),
+                          color: _titleAlignment == 'left' ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                          style: _titleAlignment == 'left' ? IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer) : null,
+                          tooltip: 'বাম',
+                          onPressed: () => setState(() => _titleAlignment = 'left'),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          icon: const Icon(Icons.format_align_center, size: 18),
+                          color: _titleAlignment == 'center' ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                          style: _titleAlignment == 'center' ? IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer) : null,
+                          tooltip: 'মাঝখানে',
+                          onPressed: () => setState(() => _titleAlignment = 'center'),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          icon: const Icon(Icons.format_align_right, size: 18),
+                          color: _titleAlignment == 'right' ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                          style: _titleAlignment == 'right' ? IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer) : null,
+                          tooltip: 'ডান',
+                          onPressed: () => setState(() => _titleAlignment = 'right'),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          icon: const Icon(Icons.remove, size: 16),
+                          onPressed: _titleFontSize > 12 ? () => setState(() => _titleFontSize = (_titleFontSize - 2).clamp(12.0, 72.0)) : null,
+                          tooltip: 'ফন্ট সাইজ কমান',
+                        ),
+                        PopupMenuButton<double>(
+                          initialValue: _titleFontSize,
+                          tooltip: 'শিরনাম ফন্ট সাইজ',
+                          onSelected: (val) => setState(() => _titleFontSize = val),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                            ),
+                            child: Text(
+                              '${_titleFontSize.toInt()} pt',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          itemBuilder: (context) => [14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 32.0, 36.0, 40.0, 48.0, 56.0, 64.0].map((size) {
+                            return PopupMenuItem<double>(
+                              value: size,
+                              child: Text('${size.toInt()} pt', style: TextStyle(fontWeight: _titleFontSize == size ? FontWeight.bold : FontWeight.normal)),
+                            );
+                          }).toList(),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          icon: const Icon(Icons.add, size: 16),
+                          onPressed: _titleFontSize < 72 ? () => setState(() => _titleFontSize = (_titleFontSize + 2).clamp(12.0, 72.0)) : null,
+                          tooltip: 'ফন্ট সাইজ বাড়ান',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   TextField(
                     focusNode: _titleFocusNode,
                     controller: _titleController,
+                    textAlign: _getTitleTextAlign(),
                     style: TextStyle(
                       fontFamily: appFontFamily,
                       fontFamilyFallback: fontFallback,
-                      fontSize: 28,
+                      fontSize: _titleFontSize,
                       fontWeight: FontWeight.w800,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -537,7 +655,7 @@ class _TeacherNoteEditorPageState extends ConsumerState<TeacherNoteEditorPage> {
                       hintStyle: TextStyle(
                         fontFamily: appFontFamily,
                         fontFamilyFallback: fontFallback,
-                        fontSize: 28,
+                        fontSize: _titleFontSize,
                         fontWeight: FontWeight.w800,
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
                       ),

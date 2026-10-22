@@ -850,8 +850,24 @@ class PrintService {
     );
 
     final noteTitle = note.title.trim();
+    pw.Alignment titleAlignment = pw.Alignment.centerLeft;
+    if (note.titleAlignment == 'center') {
+      titleAlignment = pw.Alignment.center;
+    } else if (note.titleAlignment == 'right') {
+      titleAlignment = pw.Alignment.centerRight;
+    }
+    final double titlePdfFontSize = (note.titleFontSize != null && note.titleFontSize! > 0)
+        ? (note.titleFontSize! * (16.0 / 28.0)).clamp(10.0, 32.0)
+        : 16.0;
+
     final noteTitleWidget = noteTitle.isNotEmpty
-        ? await _buildImageText(noteTitle, fontSize: 16, bold: true, maxWidth: 516)
+        ? await _buildImageText(
+            noteTitle,
+            fontSize: titlePdfFontSize,
+            bold: true,
+            maxWidth: 516,
+            alignment: titleAlignment,
+          )
         : null;
 
     pw.Widget? bookWidget;

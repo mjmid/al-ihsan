@@ -1,21 +1,8 @@
 /// ---------------------------------------------------------------------------
 /// sync_service.dart
 /// ---------------------------------------------------------------------------
-/// Orchestrates bi-directional data synchronisation between the local SQLite
-/// database and the remote Google Apps Script (GAS) Web-App.
-///
-/// Two sync paths are supported:
-///
-///   1. **Delta sync** (`syncAll` / `_syncSheet`)
-///      Fetches only rows changed since the last successful sync.
-///      Called on app resume, after background reconnection, etc.
-///
-///   2. **Initial / paginated sync** (`performInitialSync`)
-///      Used on first install (or after a local DB wipe) to pull all rows
-///      in [kPageSize]-row pages with a progress callback for a loading bar.
-///
-/// Column name mapping:
-///   Remote (PascalCase) → Local (snake_case) is handled by [_remoteToLocal].
+/// Orchestrates data synchronisation between the local SQLite database
+/// and the Google Apps Script (GAS) Web-App backed by Google Sheets.
 /// ---------------------------------------------------------------------------
 library;
 
@@ -24,25 +11,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_constants.dart';
 import '../database/database_helper.dart';
+import '../database/hive_helper.dart';
 import 'api_service.dart';
-import 'package:supabase/supabase.dart';
-import 'supabase_client.dart';
 import 'sync_queue_service.dart';
 
 // ─── SYNC RESULT ─────────────────────────────────────────────────────────────
 
-/// Outcome of a [SyncService.syncAll] or [SyncService.performInitialSync] run.
+/// Outcome of a [SyncService.syncAll] run.
 class SyncResult {
-  /// `true` when every sheet synced without errors.
   final bool isSuccess;
-
-  /// `true` when the device had no internet at the start of the sync.
   final bool isOffline;
-
-  /// Total number of rows written to the local database during this run.
   final int totalSynced;
-
-  /// Per-sheet error messages (empty on full success or offline).
   final Map<String, String> errors;
 
   const SyncResult._({
@@ -52,7 +31,6 @@ class SyncResult {
     required this.errors,
   });
 
-  /// Device was offline — sync was skipped entirely.
   factory SyncResult.offline() => const SyncResult._(
         isSuccess: false,
         isOffline: true,
@@ -60,7 +38,6 @@ class SyncResult {
         errors: {},
       );
 
-  /// All sheets synced successfully.
   factory SyncResult.success(int totalSynced) => SyncResult._(
         isSuccess: true,
         isOffline: false,
@@ -68,7 +45,6 @@ class SyncResult {
         errors: const {},
       );
 
-  /// At least one sheet failed, but others may have succeeded.
   factory SyncResult.partialFailure({
     required int totalSynced,
     required Map<String, String> errors,
@@ -80,34 +56,29 @@ class SyncResult {
         errors: errors,
       );
 
-  String? get error => errors.values.isNotEmpty ? errors.values.join(', ') : null;
+  String? get error =>
+      errors.values.isNotEmpty ? errors.values.join(', ') : null;
 
   @override
-  String toString() => 'SyncResult(success: $isSuccess, offline: $isOffline, '
-      'synced: $totalSynced, errors: $errors)';
+  String toString() =>
+      'SyncResult(success: $isSuccess, offline: $isOffline, synced: $totalSynced, errors: $errors)';
 }
 
 // ─── SYNC SERVICE ─────────────────────────────────────────────────────────────
 
-/// Coordinates delta-sync and initial-sync operations across all three sheets.
-///
-/// Inject this via a Riverpod provider in `providers.dart` so that [prefs]
-/// and [dbHelper] are resolved once per app lifetime.
 class SyncService {
-  // ---------------------------------------------------------------------------
-  // Dependencies
-  // ---------------------------------------------------------------------------
-
+  final ApiService _api;
   final DatabaseHelper _dbHelper;
   final SharedPreferences _prefs;
   final SyncQueueNotifier? _syncQueue;
 
   SyncService({
-    ApiService? api,
+    required ApiService api,
     required DatabaseHelper dbHelper,
     required SharedPreferences prefs,
     SyncQueueNotifier? syncQueue,
-  })  : _dbHelper = dbHelper,
+  })  : _api = api,
+        _dbHelper = dbHelper,
         _prefs = prefs,
         _syncQueue = syncQueue;
 
@@ -115,103 +86,101 @@ class SyncService {
   // Public API
   // ---------------------------------------------------------------------------
 
-  /// Runs a complete delta sync (pulls only changed rows from Supabase).
-  /// If [forceRefresh] is true, ignores last sync timestamp and pulls all rows.
+  /// Runs a complete data sync with Google Apps Script (Google Sheets backend).
   Future<SyncResult> syncAll({bool forceRefresh = false}) async {
     _log('syncAll() started (forceRefresh: $forceRefresh)');
 
-    // 0. Flush any pending offline changes from the local queue to Supabase
+    // 0. Flush any pending offline changes from the local queue to GAS
     if (_syncQueue != null) {
       try {
-        await _syncQueue!.processQueue();
+        await _syncQueue.processQueue(_api);
       } catch (e) {
         _log('Sync queue flush warning: $e');
       }
     }
 
-    final supabase = supabaseClient;
-    final lastSyncedAt =
-        forceRefresh ? null : _prefs.getString(kLastSyncSupabaseKey);
-    _log('Using lastSyncedAt: $lastSyncedAt');
+    // 1. Pull latest data from Google Apps Script Web App
+    final result = await _api.pull('');
+    if (!result.isSuccess) {
+      _log('syncAll failed: ${result.error}');
+      final errStr = (result.error ?? '').toLowerCase();
+      if (errStr.contains('socketexception') ||
+          errStr.contains('network') ||
+          errStr.contains('clientexception') ||
+          errStr.contains('timeout') ||
+          errStr.contains('failed host lookup') ||
+          errStr.contains('connection refused') ||
+          errStr.contains('connection closed') ||
+          errStr.contains('handshakeexception')) {
+        return SyncResult.offline();
+      }
+      return SyncResult.partialFailure(
+        totalSynced: 0,
+        errors: {'global': result.error ?? 'Unknown error'},
+      );
+    }
 
+    final data = result.data!;
     int totalSynced = 0;
+    _log('Pull data keys: ${data.keys.toList()}');
 
     try {
-      // 1. Build queries
-      final Future<dynamic> booksQuery;
-      final Future<dynamic> usersQuery;
-      final Future<dynamic> txsQuery;
-      final Future<dynamic> assetsQuery;
-
-      // Delta sync filter: only fetch records updated after last sync
-      if (lastSyncedAt != null && lastSyncedAt.isNotEmpty) {
-        booksQuery =
-            supabase.from('books').select().gt('last_updated', lastSyncedAt);
-        usersQuery =
-            supabase.from('users').select().gt('last_updated', lastSyncedAt);
-        txsQuery = supabase
-            .from('transactions')
-            .select()
-            .gt('last_updated', lastSyncedAt);
-        assetsQuery =
-            supabase.from('assets').select().gt('last_updated', lastSyncedAt);
-      } else {
-        booksQuery = supabase.from('books').select();
-        usersQuery = supabase.from('users').select();
-        txsQuery = supabase.from('transactions').select();
-        assetsQuery = supabase.from('assets').select();
-      }
-
-      // Fetch all tables concurrently
-      final results = await Future.wait<dynamic>([
-        booksQuery,
-        usersQuery,
-        txsQuery,
-        assetsQuery,
-      ]);
-
-      final rawBooks = (results[0] as List?) ?? [];
-      final rawUsers = (results[1] as List?) ?? [];
-      final rawTxs = (results[2] as List?) ?? [];
-      final rawAssets = (results[3] as List?) ?? [];
-
-      _log(
-          'Delta fetched: books=${rawBooks.length}, users=${rawUsers.length}, transactions=${rawTxs.length}, assets=${rawAssets.length}');
-
-      // 2. Sync Books
-      if (rawBooks.isNotEmpty) {
+      // 1. Sync Books
+      final rawBooks = data['books'];
+      final booksList = _toList(rawBooks);
+      if (booksList.isNotEmpty) {
         final localBooks =
-            rawBooks.map((r) => _mapBooksRow(_toMap(r))).toList();
+            booksList.map((r) => _mapBooksRow(_toMap(r))).toList();
         await _dbHelper.batchUpsert(kBooksTable, localBooks, 'accession_no');
         totalSynced += localBooks.length;
         _log('Upserted ${localBooks.length} books');
       }
 
-      // 3. Sync Users
-      if (rawUsers.isNotEmpty) {
+      // 2. Sync Users
+      final rawUsers = data['users'];
+      final usersList = _toList(rawUsers);
+      if (usersList.isNotEmpty) {
         final localUsers =
-            rawUsers.map((r) => _mapUsersRow(_toMap(r))).toList();
+            usersList.map((r) => _mapUsersRow(_toMap(r))).toList();
         await _dbHelper.batchUpsert(kUsersTable, localUsers, 'user_id');
         totalSynced += localUsers.length;
         _log('Upserted ${localUsers.length} users');
+
+        // Automatically update admin WhatsApp number from users table
+        final adminUser = localUsers.cast<Map<String, dynamic>?>().firstWhere(
+          (u) => (u?['type']?.toString().toLowerCase() == 'admin' &&
+                  u?['phone']?.toString().trim().isNotEmpty == true),
+          orElse: () => null,
+        );
+        if (adminUser != null) {
+          final phone = adminUser['phone'].toString().trim();
+          final current =
+              HiveHelper.getSetting<String>('admin_whatsapp_number', '');
+          if (current != phone) {
+            await HiveHelper.setSetting('admin_whatsapp_number', phone);
+            _log('Synced admin WhatsApp number from users table: $phone');
+          }
+        }
       }
 
-      // 4. Sync Transactions
-      if (rawTxs.isNotEmpty) {
+      // 3. Sync Transactions
+      final rawTxs = data['transactions'];
+      final txsList = _toList(rawTxs);
+      if (txsList.isNotEmpty) {
         final localTxs =
-            rawTxs.map((r) => _mapTransactionsRow(_toMap(r))).toList();
+            txsList.map((r) => _mapTransactionsRow(_toMap(r))).toList();
 
-        if (lastSyncedAt == null) {
-          final remoteIds = localTxs.map((e) => "'${e['trx_id']}'").join(',');
-          if (remoteIds.isNotEmpty) {
-            final db = await _dbHelper.database;
-            final oneHourAgo = DateTime.now()
-                .subtract(const Duration(hours: 1))
-                .toIso8601String();
-            await db.execute(
-                'DELETE FROM $kTransactionsTable WHERE trx_id NOT IN ($remoteIds) AND last_updated < ?',
-                [oneHourAgo]);
-          }
+        final remoteIds = localTxs.map((e) => "'${e['trx_id']}'").join(',');
+        if (remoteIds.isNotEmpty) {
+          final db = await _dbHelper.database;
+          // Delete transactions not on server, protecting recently created offline ones (last 1 hour)
+          final oneHourAgo = DateTime.now()
+              .subtract(const Duration(hours: 1))
+              .toIso8601String();
+          await db.execute(
+            'DELETE FROM $kTransactionsTable WHERE trx_id NOT IN ($remoteIds) AND last_updated < ?',
+            [oneHourAgo],
+          );
         }
 
         await _dbHelper.batchUpsert(kTransactionsTable, localTxs, 'trx_id');
@@ -219,22 +188,24 @@ class SyncService {
         _log('Upserted ${localTxs.length} transactions');
       }
 
-      // 5. Sync Assets
-      if (rawAssets.isNotEmpty) {
-        final localAssets = rawAssets
-            .map((r) => _mapAssetsRow(_toMap(r)))
-            .where((a) =>
-                a['asset_id'] != null &&
-                a['asset_id'].toString().trim().isNotEmpty &&
-                a['name'] != null &&
-                a['name'].toString().trim().isNotEmpty)
-            .toList();
+      // 4. Sync Assets
+      final rawAssets = data['assets'];
+      if (rawAssets != null) {
+        final assetsList = _toList(rawAssets);
+        if (assetsList.isNotEmpty) {
+          final localAssets = assetsList
+              .map((r) => _mapAssetsRow(_toMap(r)))
+              .where((a) =>
+                  a['asset_id'] != null &&
+                  a['asset_id'].toString().trim().isNotEmpty &&
+                  a['name'] != null &&
+                  a['name'].toString().trim().isNotEmpty)
+              .toList();
 
-        final db = await _dbHelper.database;
-        await db.execute(
-            "DELETE FROM $kAssetsTable WHERE name IS NULL OR TRIM(name) = '';");
+          final db = await _dbHelper.database;
+          await db.execute(
+              "DELETE FROM $kAssetsTable WHERE name IS NULL OR TRIM(name) = '';");
 
-        if (lastSyncedAt == null) {
           final remoteIds =
               localAssets.map((e) => "'${e['asset_id']}'").join(',');
           if (remoteIds.isNotEmpty) {
@@ -242,21 +213,40 @@ class SyncService {
                 .subtract(const Duration(hours: 1))
                 .toIso8601String();
             await db.execute(
-                'DELETE FROM $kAssetsTable WHERE asset_id NOT IN ($remoteIds) AND last_updated < ?',
-                [oneHourAgo]);
+              'DELETE FROM $kAssetsTable WHERE asset_id NOT IN ($remoteIds) AND last_updated < ?',
+              [oneHourAgo],
+            );
           }
-        }
 
-        if (localAssets.isNotEmpty) {
-          await _dbHelper.batchUpsert(kAssetsTable, localAssets, 'asset_id');
-          totalSynced += localAssets.length;
-          _log('Upserted ${localAssets.length} assets');
+          if (localAssets.isNotEmpty) {
+            await _dbHelper.batchUpsert(kAssetsTable, localAssets, 'asset_id');
+            totalSynced += localAssets.length;
+            _log('Upserted ${localAssets.length} assets');
+          }
         }
       }
 
-      // 6. Update last_synced_at timestamp to current UTC
-      final newTimestamp = DateTime.now().toUtc().toIso8601String();
-      await _prefs.setString(kLastSyncSupabaseKey, newTimestamp);
+      // 5. Update last_synced_at timestamp
+      final timestamp = data['timestamp']?.toString();
+      if (timestamp != null && timestamp.isNotEmpty) {
+        await _prefs.setString('last_synced_at', timestamp);
+        await _prefs.setString(kLastSyncSupabaseKey, timestamp);
+      }
+
+      // 6. Reconcile book statuses based on active transactions
+      try {
+        final db = await _dbHelper.database;
+        await db.execute('''
+          UPDATE $kBooksTable 
+          SET status = 'Lent'
+          WHERE accession_no IN (
+            SELECT accession_no FROM $kTransactionsTable 
+            WHERE status IN ('Active', 'Overdue')
+          ) AND status != 'Lent';
+        ''');
+      } catch (e) {
+        _log('Warning: book status reconciliation error: $e');
+      }
 
       // 7. Repair any data inconsistencies
       await _dbHelper.repairBookStatuses();
@@ -265,17 +255,9 @@ class SyncService {
       return SyncResult.success(totalSynced);
     } catch (e, stackTrace) {
       _log('syncAll() exception: $e\n$stackTrace');
-      final errStr = e.toString().toLowerCase();
-      if (errStr.contains('socketexception') ||
-          errStr.contains('failed host lookup') ||
-          errStr.contains('network is unreachable') ||
-          errStr.contains('connection refused') ||
-          errStr.contains('clientexception')) {
-        return SyncResult.offline();
-      }
       return SyncResult.partialFailure(
         totalSynced: totalSynced,
-        errors: {'database': 'Failed to sync: $e'},
+        errors: {'database': 'Failed to save data: $e'},
       );
     }
   }
@@ -297,10 +279,9 @@ class SyncService {
   }
 
   // ---------------------------------------------------------------------------
-  // Column name mapping (Remote GAS JS columns -> Local SQLite columns)
+  // Column name mapping (Remote GAS columns -> Local SQLite columns)
   // ---------------------------------------------------------------------------
 
-  /// Maps a remote Books row to local column names.
   Map<String, dynamic> _mapBooksRow(Map<String, dynamic> r) => {
         'accession_no': r['accession_no']?.toString().trim() ?? '',
         'book_name': r['book_name']?.toString().trim() ?? '',
@@ -318,7 +299,6 @@ class SyncService {
         'last_updated': r['last_updated']?.toString() ?? '',
       };
 
-  /// Maps a remote Users row to local column names.
   Map<String, dynamic> _mapUsersRow(Map<String, dynamic> r) => {
         'user_id': r['user_id']?.toString() ?? '',
         'name': r['name']?.toString() ?? '',
@@ -332,7 +312,6 @@ class SyncService {
         'last_updated': r['last_updated']?.toString() ?? '',
       };
 
-  /// Maps a remote Transactions row to local column names.
   Map<String, dynamic> _mapTransactionsRow(Map<String, dynamic> r) => {
         'trx_id': r['trx_id']?.toString() ?? '',
         'accession_no': r['accession_no']?.toString() ?? '',
@@ -346,7 +325,6 @@ class SyncService {
         'last_updated': r['last_updated']?.toString() ?? '',
       };
 
-  /// Maps a remote Assets row to local column names.
   Map<String, dynamic> _mapAssetsRow(Map<String, dynamic> r) => {
         'asset_id': r['asset_id']?.toString() ?? '',
         'name': r['name']?.toString() ?? '',
@@ -362,10 +340,6 @@ class SyncService {
         'remarks': r['remarks']?.toString() ?? '',
         'last_updated': r['last_updated']?.toString() ?? '',
       };
-
-  // ---------------------------------------------------------------------------
-  // Logging
-  // ---------------------------------------------------------------------------
 
   void _log(String message) {
     if (kDebugMode) {

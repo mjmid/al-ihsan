@@ -16,6 +16,7 @@
 ///      date comparison (`expected_return < CURRENT_DATE`) so it works
 ///      correctly even without an internet connection.
 /// ---------------------------------------------------------------------------
+library;
 
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
@@ -63,7 +64,24 @@ class TransactionRepository {
     final db = await _db.database;
 
     return db.transaction<LibraryTransaction?>((txn) async {
-      // 1. Check the book is available.
+      // 1. Check if the book currently has an active or overdue loan.
+      final activeTxRows = await txn.query(
+        kTransactionsTable,
+        where: 'accession_no = ? AND (status = ? OR status = ?)',
+        whereArgs: [
+          accessionNo,
+          TransactionStatus.active.toDbString(),
+          TransactionStatus.overdue.toDbString(),
+        ],
+        limit: 1,
+      );
+
+      if (activeTxRows.isNotEmpty) {
+        // Book is already actively lent out.
+        return null;
+      }
+
+      // 2. Check the book is available.
       final bookRows = await txn.query(
         kBooksTable,
         where: 'accession_no = ? AND status = ?',
@@ -117,11 +135,11 @@ class TransactionRepository {
       _syncQueue.enqueue(
         SyncOperation.create(
           sheet: 'Books',
-          action: 'upsert',
+          action: 'update',
           payload: {
-            'Accession_No': accessionNo,
-            'Status': BookStatus.lent.toDbString(),
-            'Updated_At': nowStr,
+            'accession_no': accessionNo,
+            'status': BookStatus.lent.toDbString(),
+            'last_updated': nowStr,
           },
         ),
       );
@@ -161,6 +179,23 @@ class TransactionRepository {
       final txRow = txRows.first;
       final accessionNo = txRow['accession_no'] as String;
 
+      // Ensure the book is not already actively lent out under another transaction
+      final activeCheck = await txn.query(
+        kTransactionsTable,
+        where: 'accession_no = ? AND trx_id != ? AND (status = ? OR status = ?)',
+        whereArgs: [
+          accessionNo,
+          trxId,
+          TransactionStatus.active.toDbString(),
+          TransactionStatus.overdue.toDbString(),
+        ],
+        limit: 1,
+      );
+
+      if (activeCheck.isNotEmpty) {
+        return null;
+      }
+
       final nowStr = DateTime.now().toIso8601String();
       await txn.update(
         kTransactionsTable,
@@ -198,11 +233,11 @@ class TransactionRepository {
       _syncQueue.enqueue(
         SyncOperation.create(
           sheet: 'Books',
-          action: 'upsert',
+          action: 'update',
           payload: {
-            'Accession_No': accessionNo,
-            'Status': BookStatus.lent.toDbString(),
-            'Updated_At': nowStr,
+            'accession_no': accessionNo,
+            'status': BookStatus.lent.toDbString(),
+            'last_updated': nowStr,
           },
         ),
       );
@@ -271,11 +306,11 @@ class TransactionRepository {
       _syncQueue.enqueue(
         SyncOperation.create(
           sheet: 'Books',
-          action: 'upsert',
+          action: 'update',
           payload: {
-            'Accession_No': existing.accessionNo,
-            'Status': BookStatus.available.toDbString(),
-            'Updated_At': nowStr,
+            'accession_no': existing.accessionNo,
+            'status': BookStatus.available.toDbString(),
+            'last_updated': nowStr,
           },
         ),
       );
@@ -323,7 +358,7 @@ class TransactionRepository {
         : [TransactionStatus.active.toDbString()];
 
     final rows = await db.rawQuery('''
-      SELECT t.*, b.book_name, u.name as user_name 
+      SELECT t.*, b.book_name, b.volume_no, u.name as user_name 
       FROM $kTransactionsTable t
       LEFT JOIN $kBooksTable b ON t.accession_no = b.accession_no
       LEFT JOIN $kUsersTable u ON t.user_id = u.user_id
@@ -343,7 +378,7 @@ class TransactionRepository {
     final db = await _db.database;
 
     final rows = await db.rawQuery('''
-      SELECT t.*, b.book_name, u.name as user_name 
+      SELECT t.*, b.book_name, b.volume_no, u.name as user_name 
       FROM $kTransactionsTable t
       LEFT JOIN $kBooksTable b ON t.accession_no = b.accession_no
       LEFT JOIN $kUsersTable u ON t.user_id = u.user_id
@@ -382,7 +417,7 @@ class TransactionRepository {
     final limitClause = limit != null ? 'LIMIT $limit' : '';
 
     final rows = await db.rawQuery('''
-      SELECT t.*, b.book_name, u.name as user_name 
+      SELECT t.*, b.book_name, b.volume_no, u.name as user_name 
       FROM $kTransactionsTable t
       LEFT JOIN $kBooksTable b ON t.accession_no = b.accession_no
       LEFT JOIN $kUsersTable u ON t.user_id = u.user_id
@@ -403,12 +438,19 @@ class TransactionRepository {
   ) async {
     final db = await _db.database;
 
-    final rows = await db.query(
-      kTransactionsTable,
-      where: 'accession_no = ? AND status = ?',
-      whereArgs: [accessionNo, TransactionStatus.active.toDbString()],
-      limit: 1,
-    );
+    final rows = await db.rawQuery('''
+      SELECT t.*, b.book_name, b.volume_no, u.name as user_name 
+      FROM $kTransactionsTable t
+      LEFT JOIN $kBooksTable b ON t.accession_no = b.accession_no
+      LEFT JOIN $kUsersTable u ON t.user_id = u.user_id
+      WHERE t.accession_no = ? AND (t.status = ? OR t.status = ?)
+      ORDER BY t.issue_date DESC
+      LIMIT 1
+    ''', [
+      accessionNo,
+      TransactionStatus.active.toDbString(),
+      TransactionStatus.overdue.toDbString(),
+    ]);
 
     if (rows.isEmpty) return null;
     return LibraryTransaction.fromMap(rows.first);

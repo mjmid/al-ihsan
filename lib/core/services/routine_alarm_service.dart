@@ -1,5 +1,5 @@
 import 'dart:io' show Platform;
-import 'dart:typed_data';
+import 'dart:ui' show Color;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -15,10 +15,17 @@ class RoutineAlarmService {
 
   static bool _isInitialized = false;
 
-  static const String channelId = 'routine_alarm_channel_v4';
-  static const String channelName = 'ক্লাস রুটিন ও রিমাইন্ডার';
-  static const String channelDesc =
-      'মাদরাসার ক্লাস ও মুতালায়া রিমাইন্ডারের জন্য অ্যালার্ম ও নোটিফিকেশন';
+  // ── Channel 1: সাধারণ নোটিফিকেশন (মোবাইলের ডিফল্ট নোটিফিকেশন টোন বাজবে) ───────
+  static const String notificationChannelId = 'maktaba_notifications_v2';
+  static const String notificationChannelName = 'বিজ্ঞপ্তি ও নোটিফিকেশন';
+  static const String notificationChannelDesc =
+      'নতুন কিতাব রিকোয়েস্ট ও অনুমোদন সংক্রান্ত নোটিফিকেশন';
+
+  // ── Channel 2: রুটিন ও রিমাইন্ডার এলার্ম (এলার্ম টোন বাজবে) ───────────────────
+  static const String reminderAlarmChannelId = 'maktaba_reminder_alarm_v5';
+  static const String reminderAlarmChannelName = 'ক্লাস রুটিন ও রিমাইন্ডার এলার্ম';
+  static const String reminderAlarmChannelDesc =
+      'মাদরাসার ক্লাস ও মুতালায়া রিমাইন্ডারের জন্য এলার্ম';
 
   // 6.6 seconds pattern: 1s vibrate, 400ms pause x 5 times (matches routine_alarm sound duration)
   static final Int64List _alarmVibrationPattern = Int64List.fromList([
@@ -51,7 +58,7 @@ class RoutineAlarmService {
 
       // 2. Android Initialization Settings
       const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+          AndroidInitializationSettings('@drawable/ic_notification');
 
       const initSettings = InitializationSettings(
         android: androidSettings,
@@ -64,16 +71,39 @@ class RoutineAlarmService {
         },
       );
 
-      // 3. Create High-Priority Alarm Notification Channel on Android
+      // 3. Create Notification Channels on Android
       if (!kIsWeb && Platform.isAndroid) {
         final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
 
         if (androidPlugin != null) {
-          final androidChannel = AndroidNotificationChannel(
-            channelId,
-            channelName,
-            description: channelDesc,
+          // Delete old legacy channels so Android cleans up old mute/mismatched configurations
+          try {
+            await androidPlugin.deleteNotificationChannel('routine_alarm_channel_v4');
+            await androidPlugin.deleteNotificationChannel('routine_alarm_channel_v3');
+            await androidPlugin.deleteNotificationChannel('routine_alarm_channel_v2');
+            await androidPlugin.deleteNotificationChannel('routine_alarm_channel');
+          } catch (_) {}
+
+          // Channel 1: General Notifications (মোবাইলে ব্যবহারকারীর যে নোটিফিকেশন টোন সেট করা, সেটিই বাজবে)
+          const generalChannel = AndroidNotificationChannel(
+            notificationChannelId,
+            notificationChannelName,
+            description: notificationChannelDesc,
+            importance: Importance.max,
+            playSound: true,
+            // sound: null means Android will use Settings.System.DEFAULT_NOTIFICATION_URI
+            enableVibration: true,
+            enableLights: true,
+            audioAttributesUsage: AudioAttributesUsage.notification,
+          );
+          await androidPlugin.createNotificationChannel(generalChannel);
+
+          // Channel 2: Reminder & Routine Alarm (এলার্ম টোন বাজবে)
+          final reminderChannel = AndroidNotificationChannel(
+            reminderAlarmChannelId,
+            reminderAlarmChannelName,
+            description: reminderAlarmChannelDesc,
             importance: Importance.max,
             playSound: true,
             sound: const RawResourceAndroidNotificationSound('routine_alarm'),
@@ -82,8 +112,7 @@ class RoutineAlarmService {
             enableLights: true,
             audioAttributesUsage: AudioAttributesUsage.alarm,
           );
-
-          await androidPlugin.createNotificationChannel(androidChannel);
+          await androidPlugin.createNotificationChannel(reminderChannel);
 
           // Request permissions for Android 13+ and exact alarms
           await androidPlugin.requestNotificationsPermission();
@@ -105,7 +134,7 @@ class RoutineAlarmService {
     return (base * 100) + (dayOfWeek * 10) + typeOffset;
   }
 
-  /// Schedule all alarms for a single routine entry
+  /// Schedule all alarms for a single routine entry (Reminders - plays alarm tone)
   static Future<void> scheduleRoutine(RoutineEntry routine) async {
     if (kIsWeb) return;
     if (!_isInitialized) await initialize();
@@ -160,13 +189,17 @@ class RoutineAlarmService {
             scheduledDate,
             NotificationDetails(
               android: AndroidNotificationDetails(
-                channelId,
-                channelName,
-                channelDescription: channelDesc,
+                reminderAlarmChannelId,
+                reminderAlarmChannelName,
+                channelDescription: reminderAlarmChannelDesc,
                 importance: Importance.max,
-                priority: Priority.high,
+                priority: Priority.max,
                 playSound: true,
                 sound: const RawResourceAndroidNotificationSound('routine_alarm'),
+                icon: 'ic_notification',
+                largeIcon: const DrawableResourceAndroidBitmap(
+                    '@drawable/ic_notification_large'),
+                color: const Color(0xFF1F9E5C),
                 enableVibration: true,
                 vibrationPattern: _alarmVibrationPattern,
                 fullScreenIntent: true,
@@ -189,13 +222,12 @@ class RoutineAlarmService {
           final nightHour = int.tryParse(nightParts[0]) ?? 21;
           final nightMinute = (nightParts.length > 1) ? (int.tryParse(nightParts[1]) ?? 0) : 0;
 
-          // Night before day: If class is on Tuesday (2), night before is Monday (1)
           final nightDay = (dayOfWeek == 1) ? 7 : dayOfWeek - 1;
 
           final scheduledDate = _nextInstanceOfDayAndTime(nightDay, nightHour, nightMinute);
           final notifId = _generateNotificationId(routine.id, dayOfWeek, true);
 
-          final title = '📖 আগামীকালের মুতালায়া ও প্রস্তুতি';
+          const title = '📖 আগামীকালের মুতালায়া ও প্রস্তুতি';
           final body = 'আগামীকাল ${routine.startTime} টায় ${routine.className} শ্রেণীতে "${routine.subjectName}" কিতাবের দরস আছে, মুতালায়া করুন।';
 
           await _notifications.zonedSchedule(
@@ -205,13 +237,17 @@ class RoutineAlarmService {
             scheduledDate,
             NotificationDetails(
               android: AndroidNotificationDetails(
-                channelId,
-                channelName,
-                channelDescription: channelDesc,
+                reminderAlarmChannelId,
+                reminderAlarmChannelName,
+                channelDescription: reminderAlarmChannelDesc,
                 importance: Importance.max,
-                priority: Priority.high,
+                priority: Priority.max,
                 playSound: true,
                 sound: const RawResourceAndroidNotificationSound('routine_alarm'),
+                icon: 'ic_notification',
+                largeIcon: const DrawableResourceAndroidBitmap(
+                    '@drawable/ic_notification_large'),
+                color: const Color(0xFF1F9E5C),
                 enableVibration: true,
                 vibrationPattern: _alarmVibrationPattern,
                 fullScreenIntent: true,
@@ -277,11 +313,140 @@ class RoutineAlarmService {
       minute,
     );
 
-    // If today is the target day and the time has already passed today, or if today is another day
     while (scheduledDate.weekday != dayOfWeek || scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
     return scheduledDate;
+  }
+
+  /// Displays notification using the user's mobile notification tone
+  /// when an admin approves a teacher's book request.
+  static Future<void> showBookApprovedNotification({
+    required String bookTitle,
+    required String trxId,
+  }) async {
+    if (kIsWeb) return;
+    if (!_isInitialized) await initialize();
+
+    try {
+      final notifId = trxId.hashCode.abs() % 100000;
+      const title = '✅ কিতাব রিকোয়েস্ট অনুমোদিত হয়েছে!';
+      final body =
+          'আপনার অনুরোধ করা কিতাব "$bookTitle" অ্যাডমিন অনুমোদন করেছেন। লাইব্রেরি থেকে কিতাবটি সংগ্রহ করুন।';
+
+      await _notifications.show(
+        notifId,
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            notificationChannelId,
+            notificationChannelName,
+            channelDescription: notificationChannelDesc,
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            // sound: null ensures the user's mobile notification tone rings!
+            icon: 'ic_notification',
+            largeIcon: const DrawableResourceAndroidBitmap(
+                '@drawable/ic_notification_large'),
+            color: const Color(0xFF1F9E5C),
+            enableVibration: true,
+            enableLights: true,
+            audioAttributesUsage: AudioAttributesUsage.notification,
+            styleInformation: BigTextStyleInformation(body, contentTitle: title),
+          ),
+        ),
+      );
+      debugPrint('🔔 Triggered book approval notification for: $bookTitle (ID: $notifId)');
+    } catch (e) {
+      debugPrint('⚠️ Error showing book approved notification: $e');
+    }
+  }
+
+  /// Displays notification using the user's mobile notification tone
+  /// when a teacher requests a book (for Admin device).
+  static Future<void> showBookRequestedNotification({
+    required String teacherName,
+    required String bookTitle,
+    required String trxId,
+  }) async {
+    if (kIsWeb) return;
+    if (!_isInitialized) await initialize();
+
+    try {
+      final notifId = trxId.hashCode.abs() % 100000;
+      const title = '🔔 নতুন কিতাব রিকোয়েস্ট এসেছে!';
+      final body = '$teacherName "$bookTitle" কিতাবটি নেয়ার জন্য রিকোয়েস্ট পাঠিয়েছেন।';
+
+      await _notifications.show(
+        notifId,
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            notificationChannelId,
+            notificationChannelName,
+            channelDescription: notificationChannelDesc,
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            // sound: null ensures the user's mobile notification tone rings!
+            icon: 'ic_notification',
+            largeIcon: const DrawableResourceAndroidBitmap(
+                '@drawable/ic_notification_large'),
+            color: const Color(0xFF1F9E5C),
+            enableVibration: true,
+            enableLights: true,
+            audioAttributesUsage: AudioAttributesUsage.notification,
+            styleInformation: BigTextStyleInformation(body, contentTitle: title),
+          ),
+        ),
+      );
+      debugPrint('🔔 Triggered book requested notification for: $bookTitle (ID: $notifId)');
+    } catch (e) {
+      debugPrint('⚠️ Error showing book requested notification: $e');
+    }
+  }
+
+  /// Plays test reminder alarm immediately so the user can test the alarm tone
+  static Future<void> testAlarmSound() async {
+    if (kIsWeb) return;
+    if (!_isInitialized) await initialize();
+
+    try {
+      await _notifications.show(
+        99999,
+        '⏰ ক্লাস রুটিন ও রিমাইন্ডার অ্যালার্ম (টেস্ট)',
+        'ক্লাস শুরু অথবা মুতালায়া রিমাইন্ডারে এই অ্যালার্ম টোন বাজবে।',
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            reminderAlarmChannelId,
+            reminderAlarmChannelName,
+            channelDescription: reminderAlarmChannelDesc,
+            importance: Importance.max,
+            priority: Priority.max,
+            playSound: true,
+            sound: const RawResourceAndroidNotificationSound('routine_alarm'),
+            icon: 'ic_notification',
+            largeIcon: const DrawableResourceAndroidBitmap(
+                '@drawable/ic_notification_large'),
+            color: const Color(0xFF1F9E5C),
+            enableVibration: true,
+            vibrationPattern: _alarmVibrationPattern,
+            fullScreenIntent: true,
+            category: AndroidNotificationCategory.alarm,
+            audioAttributesUsage: AudioAttributesUsage.alarm,
+            styleInformation: const BigTextStyleInformation(
+              'ক্লাস শুরু অথবা মুতালায়া রিমাইন্ডারে এই অ্যালার্ম টোন বাজবে।',
+              contentTitle: '⏰ ক্লাস রুটিন ও রিমাইন্ডার অ্যালার্ম (টেস্ট)',
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('⚠️ Error testing alarm sound: $e');
+    }
   }
 }

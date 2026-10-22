@@ -67,10 +67,39 @@ class CurvedBottomNav extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(
-                  items[selectedIndex].activeIcon ?? items[selectedIndex].icon,
-                  color: Colors.white,
-                  size: items.length > 5 ? 22 : 24,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      items[selectedIndex].activeIcon ?? items[selectedIndex].icon,
+                      color: Colors.white,
+                      size: items.length > 5 ? 22 : 24,
+                    ),
+                    if (items[selectedIndex].badgeCount > 0)
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Center(
+                            child: Text(
+                              '${items[selectedIndex].badgeCount}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -89,14 +118,42 @@ class CurvedBottomNav extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Invisible icon to keep spacing when selected
-                      Opacity(
-                        opacity: isSelected ? 0 : 1,
-                        child: Icon(
-                          item.icon,
-                          size: items.length > 5 ? 22 : 24,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      // Icon with badge
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Opacity(
+                            opacity: isSelected ? 0 : 1,
+                            child: Icon(
+                              item.icon,
+                              size: items.length > 5 ? 22 : 24,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          if (item.badgeCount > 0 && !isSelected)
+                            Positioned(
+                              top: -4,
+                              right: -8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                child: Center(
+                                  child: Text(
+                                    '${item.badgeCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -130,11 +187,13 @@ class CurvedNavItem {
   final IconData? activeIcon;
   final String label;
   final List<Color>? gradientColors;
+  final int badgeCount;
 
   CurvedNavItem({
     required this.icon,
     this.activeIcon,
     required this.label,
     this.gradientColors,
+    this.badgeCount = 0,
   });
 }

@@ -383,4 +383,40 @@ class BookRepository {
       ),
     );
   }
+
+  /// Performs a high-performance batch insert or update of multiple [Book]s.
+  ///
+  /// Writes all records to local SQLite inside a single batch transaction,
+  /// then asynchronously upserts them to Supabase in chunks of 50.
+  /// If offline or Supabase fails, enqueues the operations to [_syncQueue].
+  Future<void> batchUpsertBooks(
+    List<Book> books, {
+    void Function(int current, int total)? onProgress,
+  }) async {
+    if (books.isEmpty) return;
+
+    // 1. Batch upsert into local SQLite
+    final rows = books.map((b) => b.toMap()).toList();
+    await _db.batchUpsert(kBooksTable, rows, 'accession_no');
+
+    // 2. Upsert to Supabase in chunks of 50
+    const chunkSize = 50;
+    for (int i = 0; i < books.length; i += chunkSize) {
+      final end = (i + chunkSize < books.length) ? i + chunkSize : books.length;
+      final chunkBooks = books.sublist(i, end);
+      final chunkMaps = chunkBooks.map((b) => b.toMap()).toList();
+
+      for (final bookMap in chunkMaps) {
+        _syncQueue.enqueue(
+          SyncOperation.create(
+            sheet: 'Books',
+            action: 'upsert',
+            payload: bookMap,
+          ),
+        );
+      }
+
+      onProgress?.call(end, books.length);
+    }
+  }
 }

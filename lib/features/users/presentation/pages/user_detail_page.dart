@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/user_model.dart';
+import '../../../../core/models/book_model.dart';
 import '../../../../core/models/transaction_model.dart';
 import '../../../../core/providers/providers.dart';
 import 'package:maktaba_ihsan/core/providers/transaction_providers.dart';
@@ -56,7 +57,6 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationProvider);
-    final isStudent = _currentUser.type == UserType.student;
 
     return Scaffold(
       appBar: AppBar(
@@ -178,7 +178,7 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text('ID: ${_currentUser.userId}'),
+                      Text('${t.memberId}: ${_currentUser.userId}'),
                       if (_currentUser.classJamat?.isNotEmpty == true)
                         Text('${t.classJamat}: ${_currentUser.classJamat}'),
                       if (_currentUser.phone?.isNotEmpty == true)
@@ -209,6 +209,38 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
                             fontSize: 12,
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 5),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final txsAsync = ref.watch(
+                              userTransactionsProvider(_currentUser.userId));
+                          final activeCount = txsAsync.valueOrNull
+                                  ?.where((tx) =>
+                                      tx.status == TransactionStatus.active ||
+                                      tx.status == TransactionStatus.overdue)
+                                  .length ??
+                              0;
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
+                          return Text(
+                            activeCount > 0
+                                ? '${activeCount.toBengaliNumerals()}টি কিতাব আছে'
+                                : '০টি কিতাব আছে',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: activeCount > 0
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: activeCount > 0
+                                  ? (isDark
+                                      ? const Color(0xFF5BE29B)
+                                      : Colors.green.shade800)
+                                  : (isDark
+                                      ? Colors.white38
+                                      : Colors.grey.shade600),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -323,7 +355,6 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
       itemCount: transactions.length,
       itemBuilder: (context, index) {
         final tx = transactions[index];
-        final isOverdue = tx.isOverdue;
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
@@ -331,20 +362,36 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
             builder: (context, ref, child) {
               final bookAsync =
                   ref.watch(bookByAccessionNoProvider(tx.accessionNo));
-              final bookName = bookAsync.when(
-                data: (book) => book?.bookName ?? t.unknownBook,
-                loading: () => t.loading,
-                error: (_, __) => t.error,
-              );
+              final book = bookAsync.valueOrNull;
+              final rawBookName = book?.bookName ??
+                  tx.bookName ??
+                  (bookAsync.isLoading ? t.loading : t.unknownBook);
+              final volumeNo = book?.volumeNo ?? tx.volumeNo;
+              final volTrim = volumeNo?.trim() ?? '';
+
+              String bookDisplayName = rawBookName;
+              if (volTrim.isNotEmpty) {
+                if (volTrim.contains('খণ্ড') ||
+                    volTrim.contains('খন্ড') ||
+                    volTrim.contains('جلد') ||
+                    volTrim.contains('Vol') ||
+                    volTrim.contains('vol')) {
+                  bookDisplayName = '$rawBookName ($volTrim)';
+                } else {
+                  bookDisplayName = '$rawBookName (খণ্ড: $volTrim)';
+                }
+              }
 
               return NeuCard(
                 padding: EdgeInsets.zero,
                 child: ListTile(
-                  title: DynamicFontText(bookName),
+                  title: DynamicFontText(bookDisplayName),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('ID: ${tx.accessionNo}'),
+                      const SizedBox(height: 4),
+                      Text('কিতাব নাম্বার: ${tx.accessionNo}'),
+                      const SizedBox(height: 2),
                       Text(
                           '${t.issueDate} ${dateFormat.format(tx.issueDate.toLocal())}'),
                       if (!isActiveTab && tx.actualReturn != null)
@@ -394,11 +441,13 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage>
         final repository = ref.read(transactionRepositoryProvider);
         await repository.returnBook(trxId);
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('কিতাব সফলভাবে ফেরত নেওয়া হয়েছে।')),
         );
         ref.invalidate(userTransactionsProvider(_currentUser.userId));
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('ত্রুটি: $e'), backgroundColor: Colors.red),
         );

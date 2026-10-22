@@ -1,0 +1,8 @@
+{
+  "version": "1.0.9",
+  "buildNumber": 9,
+  "releaseDate": "2026-10-22",
+  "changelog": "নোট শিরনাম এলাইনমেন্ট ও ফন্ট সাইজ, পিডব্লিউএ ইনস্টলেশন ও অটো-আপডেট ফিচার",
+  "apkUrlArm64": "https://maktabatu-ihsan.web.app/apk/al-ihsan-all-phones.apk",
+  "apkUrlArmV7": "https://maktabatu-ihsan.web.app/apk/al-ihsan-old-phones.apk"
+}

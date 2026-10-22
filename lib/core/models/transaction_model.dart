@@ -85,6 +85,7 @@ class LibraryTransaction extends Equatable {
     required this.lastUpdated,
     this.actualReturn,
     this.bookName,
+    this.volumeNo,
     this.userName,
   });
 
@@ -121,6 +122,9 @@ class LibraryTransaction extends Equatable {
 
   /// Optional book name (populated via JOIN queries).
   final String? bookName;
+
+  /// Optional volume number (populated via JOIN queries).
+  final String? volumeNo;
 
   /// Optional user name (populated via JOIN queries).
   final String? userName;
@@ -170,6 +174,7 @@ class LibraryTransaction extends Equatable {
       lastUpdated: DateTime.tryParse(map['last_updated'] as String? ?? '') ??
           DateTime.now(),
       bookName: map['book_name'] as String?,
+      volumeNo: map['volume_no'] as String?,
       userName: map['user_name'] as String?,
     );
   }
@@ -219,6 +224,7 @@ class LibraryTransaction extends Equatable {
     TransactionStatus? status,
     DateTime? lastUpdated,
     String? bookName,
+    String? volumeNo,
     String? userName,
   }) {
     return LibraryTransaction(
@@ -231,6 +237,7 @@ class LibraryTransaction extends Equatable {
       status: status ?? this.status,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       bookName: bookName ?? this.bookName,
+      volumeNo: volumeNo ?? this.volumeNo,
       userName: userName ?? this.userName,
     );
   }

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../core/constants/app_constants.dart';
 import '../core/providers/settings_provider.dart';
 import '../features/auth/presentation/pages/login_page.dart';
+import '../core/widgets/app_install_bottom_banner.dart';
 
 /// ============================================================
 /// MaktabaApp — Root Widget
@@ -146,6 +146,15 @@ class MaktabaApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            const AppInstallBottomBanner(),
+          ],
+        );
+      },
 
       // ── Initial Route ───────────────────────────────────────────────────
       home: const LoginPage(),

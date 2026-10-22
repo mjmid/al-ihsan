@@ -21,7 +21,7 @@ const String kGasBaseUrl =
 const String kApiKey = 'YOUR_API_KEY_HERE';
 
 /// Maximum number of seconds to wait for a connection to be established.
-const int kApiTimeoutSeconds = 30;
+const int kApiTimeoutSeconds = 45;
 
 // ─── SUPABASE ────────────────────────────────────────────────────────────────
 

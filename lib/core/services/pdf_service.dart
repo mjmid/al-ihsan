@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
@@ -8,6 +7,8 @@ import 'package:printing/printing.dart';
 import 'package:maktaba_ihsan/core/models/user_model.dart';
 import 'package:maktaba_ihsan/core/models/transaction_model.dart';
 import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
+import 'package:maktaba_ihsan/core/database/database_helper.dart';
+import 'package:maktaba_ihsan/core/constants/app_constants.dart';
 import 'package:intl/intl.dart';
 
 class PdfService {
@@ -85,9 +86,43 @@ class PdfService {
       final isReturned = tx.status == TransactionStatus.returned || tx.actualReturn != null;
       final statusText = isReturned ? 'ফেরত প্রাপ্ত' : 'অধ্যয়নাধীন';
 
+      String bookDisplay = tx.bookName ?? 'কিতাব';
+      String? vol = tx.volumeNo;
+      if (vol == null || vol.trim().isEmpty) {
+        try {
+          final db = await DatabaseHelper.instance.database;
+          final bRows = await db.query(
+            kBooksTable,
+            columns: ['volume_no', 'book_name'],
+            where: 'accession_no = ?',
+            whereArgs: [tx.accessionNo],
+            limit: 1,
+          );
+          if (bRows.isNotEmpty) {
+            vol = bRows.first['volume_no'] as String?;
+            if (tx.bookName == null || tx.bookName!.isEmpty) {
+              bookDisplay = (bRows.first['book_name'] as String?) ?? bookDisplay;
+            }
+          }
+        } catch (_) {}
+      }
+
+      final volTrim = vol?.trim() ?? '';
+      if (volTrim.isNotEmpty) {
+        if (volTrim.contains('খণ্ড') ||
+            volTrim.contains('খন্ড') ||
+            volTrim.contains('جلد') ||
+            volTrim.contains('Vol') ||
+            volTrim.contains('vol')) {
+          bookDisplay = '$bookDisplay ($volTrim)';
+        } else {
+          bookDisplay = '$bookDisplay (খণ্ড: $volTrim)';
+        }
+      }
+
       renderedRows.add([
         await _buildImageText(tx.accessionNo, fontSize: 10),
-        await _buildImageText(tx.bookName ?? 'কিতাব', fontSize: 10),
+        await _buildImageText(bookDisplay, fontSize: 10),
         await _buildImageText(dateFormat.format(tx.issueDate.toLocal()), fontSize: 10),
         await _buildImageText(tx.actualReturn != null ? dateFormat.format(tx.actualReturn!.toLocal()) : '-', fontSize: 10),
         await _buildImageText(statusText, fontSize: 10),

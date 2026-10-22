@@ -4,10 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/models/user_model.dart';
-import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/providers/providers.dart';
 import '../../../../core/providers/settings_provider.dart';
-import '../../../../core/services/sync_service.dart';
 import '../../../../core/widgets/maktaba_text_field.dart';
 import '../../../../core/theme/neu_card.dart';
 import '../../../../core/theme/neu_button.dart';
@@ -190,7 +188,17 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   // WhatsApp Support Helper
   // ---------------------------------------------------------------------------
   Future<void> _contactAdminViaWhatsApp() async {
-    final adminPhone = ref.read(appSettingsProvider).adminWhatsAppNumber;
+    String? adminPhone = ref.read(appSettingsProvider).adminWhatsAppNumber;
+    if (adminPhone == null || adminPhone.trim().isEmpty) {
+      final db = await ref.read(databaseHelperProvider).database;
+      final rows = await db.rawQuery("SELECT phone FROM users WHERE LOWER(type) = 'admin' AND phone IS NOT NULL AND TRIM(phone) != '' LIMIT 1");
+      if (rows.isNotEmpty) {
+        adminPhone = rows.first['phone']?.toString();
+        if (adminPhone != null && adminPhone.trim().isNotEmpty) {
+          await ref.read(appSettingsProvider.notifier).setAdminWhatsAppNumber(adminPhone.trim());
+        }
+      }
+    }
     if (adminPhone == null || adminPhone.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

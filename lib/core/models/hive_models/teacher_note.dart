@@ -33,6 +33,8 @@ class TeacherNote extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
     this.linkedBookAccessionNo,
+    this.titleAlignment = 'left',
+    this.titleFontSize = 28.0,
   });
 
   // ---------------------------------------------------------------------------
@@ -75,6 +77,14 @@ class TeacherNote extends HiveObject {
   @HiveField(6)
   DateTime updatedAt;
 
+  /// Alignment of the note title ('left', 'center', 'right').
+  @HiveField(7)
+  String? titleAlignment;
+
+  /// Font size of the note title (default 28.0 pt).
+  @HiveField(8)
+  double? titleFontSize;
+
   // ---------------------------------------------------------------------------
   // copyWith
   // ---------------------------------------------------------------------------
@@ -89,6 +99,8 @@ class TeacherNote extends HiveObject {
     String? title,
     String? content,
     String? linkedBookAccessionNo,
+    String? titleAlignment,
+    double? titleFontSize,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -99,6 +111,8 @@ class TeacherNote extends HiveObject {
       content: content ?? this.content,
       linkedBookAccessionNo:
           linkedBookAccessionNo ?? this.linkedBookAccessionNo,
+      titleAlignment: titleAlignment ?? this.titleAlignment,
+      titleFontSize: titleFontSize ?? this.titleFontSize,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

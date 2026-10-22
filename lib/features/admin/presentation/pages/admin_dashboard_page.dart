@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/madrasa_app_bar_title.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,10 @@ import 'package:maktaba_ihsan/core/l10n/app_translations.dart';
 import 'package:maktaba_ihsan/core/widgets/curved_bottom_nav.dart';
 import 'package:maktaba_ihsan/core/providers/transaction_providers.dart';
 import 'package:maktaba_ihsan/core/models/transaction_model.dart';
+import 'package:maktaba_ihsan/core/database/hive_helper.dart';
+import 'package:maktaba_ihsan/core/services/supabase_client.dart';
+import 'package:maktaba_ihsan/core/services/routine_alarm_service.dart';
+import 'package:supabase/supabase.dart';
 
 class AdminDashboardPage extends ConsumerStatefulWidget {
   const AdminDashboardPage({super.key});
@@ -22,16 +27,216 @@ class AdminDashboardPage extends ConsumerStatefulWidget {
   ConsumerState<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
-class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
+class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage>
+    with WidgetsBindingObserver {
   int _selectedIndex = 0;
   bool _isSyncing = false;
+  bool _isSilentSyncing = false;
+  Timer? _heartbeatTimer;
+  RealtimeChannel? _realtimeChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Initial silent sync right after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _silentSync();
+    });
+
+    // 15-second heartbeat timer for automatic delta sync
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _silentSync();
+    });
+
+    // Supabase Realtime channel subscription for instant push updates
+    _subscribeRealtime();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _heartbeatTimer?.cancel();
+    _unsubscribeRealtime();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _silentSync();
+    }
+  }
+
+  void _subscribeRealtime() {
+    try {
+      _realtimeChannel = supabaseClient.channel('admin_transactions_realtime')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'transactions',
+          callback: (payload) {
+            _silentSync();
+          },
+        )
+        ..subscribe();
+    } catch (e) {
+      debugPrint('Realtime subscription error: $e');
+    }
+  }
+
+  void _unsubscribeRealtime() {
+    try {
+      if (_realtimeChannel != null) {
+        supabaseClient.removeChannel(_realtimeChannel!);
+        _realtimeChannel = null;
+      }
+    } catch (e) {
+      debugPrint('Realtime unsubscription error: $e');
+    }
+  }
+
+  Future<void> _silentSync() async {
+    if (_isSilentSyncing || !mounted) return;
+    _isSilentSyncing = true;
+    try {
+      final syncService = await ref.read(syncServiceProvider.future);
+      final result = await syncService.syncAll();
+      if (result.totalSynced > 0) {
+        ref.invalidate(allTransactionsProvider);
+        ref.invalidate(transactionsListProvider);
+        ref.invalidate(usersListProvider);
+        refreshAllBookProviders(ref);
+      }
+    } catch (e) {
+      debugPrint('Silent sync error: $e');
+    } finally {
+      if (mounted) {
+        _isSilentSyncing = false;
+      }
+    }
+  }
+
+  void _checkNewRequests(List<LibraryTransaction> allTxs) {
+    final notifiedList = HiveHelper.getSetting<List<dynamic>>(
+        'notified_requested_trx_ids', <dynamic>[]);
+    final notifiedSet =
+        Set<String>.from(notifiedList.map((e) => e.toString()));
+
+    final isFirstRun =
+        !HiveHelper.settingsBox.containsKey('notified_requested_trx_ids');
+    final requestedTxs = allTxs
+        .where((tx) => tx.status == TransactionStatus.requested)
+        .toList();
+
+    if (isFirstRun) {
+      // First run: silently save existing IDs so we don't alert on app startup
+      final initialIds = requestedTxs.map((e) => e.trxId).toList();
+      HiveHelper.setSetting('notified_requested_trx_ids', initialIds);
+      return;
+    }
+
+    final newlyRequested =
+        requestedTxs.where((tx) => !notifiedSet.contains(tx.trxId)).toList();
+
+    if (newlyRequested.isNotEmpty) {
+      for (final tx in newlyRequested) {
+        notifiedSet.add(tx.trxId);
+      }
+      HiveHelper.setSetting('notified_requested_trx_ids', notifiedSet.toList());
+
+      // Trigger system notification using the phone's set notification tone
+      for (final tx in newlyRequested) {
+        RoutineAlarmService.showBookRequestedNotification(
+          teacherName: tx.userName ?? 'একজন ওস্তাদ',
+          bookTitle: tx.bookName ?? 'কিতাব',
+          trxId: tx.trxId,
+        );
+      }
+
+      if (mounted) {
+        final firstReq = newlyRequested.first;
+        final extraCount = newlyRequested.length - 1;
+        final title = extraCount > 0
+            ? '🔔 নতুন ${newlyRequested.length} টি কিতাব রিকোয়েস্ট এসেছে!'
+            : '🔔 নতুন কিতাব রিকোয়েস্ট এসেছে!';
+        final subtitle = extraCount > 0
+            ? '${firstReq.userName ?? 'ওস্তাদ'}: ${firstReq.bookName ?? 'কিতাব'} এবং আরো $extraCount টি'
+            : '${firstReq.userName ?? 'ওস্তাদ'}: ${firstReq.bookName ?? 'কিতাব'}';
+
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.notifications_active,
+                      color: Colors.amber, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: const Color(0xFF1E293B),
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'দেখুন',
+              textColor: Colors.amber,
+              onPressed: () {
+                setState(() {
+                  _selectedIndex = 2; // Transactions tab
+                });
+                ref.read(transactionStatusFilterProvider.notifier).state =
+                    TransactionStatus.requested;
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _runSync() async {
     if (_isSyncing) return;
     setState(() => _isSyncing = true);
 
     try {
-      // STEP 1: Push any pending local changes to GAS first
+      // STEP 1: Push any pending local changes first
       final pendingOps = ref.read(syncQueueProvider);
       if (pendingOps.isNotEmpty) {
         if (mounted) {
@@ -46,17 +251,17 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         await ref.read(syncQueueProvider.notifier).processQueue(
               ref.read(apiServiceProvider),
             );
-        // Wait a moment for GAS to process the data
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 1));
       }
 
-      // STEP 2: Pull latest data from GAS
+      // STEP 2: Pull latest data from Supabase
       final syncService = await ref.read(syncServiceProvider.future);
       final result = await syncService.syncAll();
 
       // Force refresh UI
       refreshAllBookProviders(ref);
       ref.invalidate(usersListProvider);
+      ref.invalidate(allTransactionsProvider);
       ref.invalidate(transactionsListProvider);
 
       if (mounted) {
@@ -100,11 +305,17 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final txAsync = ref.watch(transactionsListProvider);
-    int pendingCount = txAsync.valueOrNull
-            ?.where((t) => t.status == TransactionStatus.requested)
-            .length ??
-        0;
+    final pendingCount = ref.watch(pendingRequestsCountProvider);
+
+    // Listen for new incoming requests in real-time
+    ref.listen<AsyncValue<List<LibraryTransaction>>>(
+      allTransactionsProvider,
+      (previous, next) {
+        next.whenData((txs) {
+          _checkNewRequests(txs);
+        });
+      },
+    );
 
     final pages = [
       const BookListPage(isAdmin: true),
@@ -195,7 +406,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                     )
                   : IconButton(
                       icon: const Icon(Icons.sync),
-                      tooltip: 'গুগল শীট থেকে সিঙ্ক করুন',
+                      tooltip: 'ডাটাবেস সিঙ্ক করুন',
                       onPressed: _runSync,
                     ),
             ],
@@ -236,6 +447,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             icon: Icons.swap_horiz_outlined,
             activeIcon: Icons.swap_horiz,
             label: t.transactions,
+            badgeCount: pendingCount,
             gradientColors: const [
               Color(0xFFfb923c),
               Color(0xFFea580c)

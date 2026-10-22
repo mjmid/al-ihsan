@@ -247,13 +247,28 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        tx.bookName ?? t.unknownBook,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      Builder(builder: (context) {
+                        final volTrim = tx.volumeNo?.trim() ?? '';
+                        String bookDisplayName = tx.bookName ?? t.unknownBook;
+                        if (volTrim.isNotEmpty) {
+                          if (volTrim.contains('খণ্ড') ||
+                              volTrim.contains('খন্ড') ||
+                              volTrim.contains('جلد') ||
+                              volTrim.contains('Vol') ||
+                              volTrim.contains('vol')) {
+                            bookDisplayName = '$bookDisplayName ($volTrim)';
+                          } else {
+                            bookDisplayName = '$bookDisplayName (খণ্ড: $volTrim)';
+                          }
+                        }
+                        return Text(
+                          bookDisplayName,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      }),
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -266,6 +281,28 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
                                 color: colorScheme.onSurfaceVariant,
                                 fontSize: 13),
                           ),
+                          if (tx.volumeNo != null && tx.volumeNo!.trim().isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                tx.volumeNo!.trim().contains('খণ্ড') ||
+                                        tx.volumeNo!.trim().contains('খন্ড')
+                                    ? tx.volumeNo!.trim()
+                                    : 'খণ্ড: ${tx.volumeNo!.trim()}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -290,7 +327,89 @@ class _TeacherShelfPageState extends ConsumerState<TeacherShelfPage> {
                 ),
               ],
             ),
-            if (tx.status != TransactionStatus.requested) ...[
+            if (tx.status == TransactionStatus.requested) ...[
+              const SizedBox(height: 12),
+              Divider(
+                  height: 1,
+                  color: colorScheme.outlineVariant.withOpacity(0.5)),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.edit_calendar,
+                          size: 14, color: colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${t.requestDate}: ',
+                        style: TextStyle(
+                            color: colorScheme.onSurfaceVariant, fontSize: 13),
+                      ),
+                      Text(
+                        dateFormat.format(tx.issueDate),
+                        style: TextStyle(
+                          color: colorScheme.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('রিকোয়েস্ট বাতিল করবেন?'),
+                          content: const Text(
+                              'আপনি কি নিশ্চিত যে এই কিতাবের রিকোয়েস্টটি বাতিল করতে চান?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('না'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.red),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('হ্যাঁ, বাতিল করুন'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true && context.mounted) {
+                        final repo = ref.read(transactionRepositoryProvider);
+                        await repo.deleteTransaction(tx.trxId);
+                        ref.read(syncQueueProvider.notifier).processQueue();
+                        ref.invalidate(userTransactionsProvider(tx.userId));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('রিকোয়েস্ট বাতিল করা হয়েছে'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.cancel_outlined,
+                        size: 15, color: Colors.red),
+                    label: const Text('বাতিল করুন',
+                        style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
               const SizedBox(height: 16),
               Divider(
                   height: 1,
